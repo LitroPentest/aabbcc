@@ -31,9 +31,9 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 # Игровые сессии
-games = {}          # Мины[cite: 1]
-joker_games = {}    # Башня Джокер[cite: 1]
-bj_games = {}       # 21 Очко[cite: 1]
+games = {}          # Мины
+joker_games = {}    # Башня Джокер
+bj_games = {}       # 21 Очко
 
 custom_next_mines = {}
 nextgame_setups = {}
@@ -421,9 +421,9 @@ async def handle_ping(message: Message):
 # ================= СТАРТ И ПРОФИЛЬ =================
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    bal = float(user.get("balance") or 0.0)[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    bal = float(user.get("balance") or 0.0)
     await message.answer(
         f"👋 Привет, <b>{html.escape(message.from_user.first_name)}</b>!\n\n"
         f"💎 Баланс: <b>{bal:.2f} TON</b>\n\n"
@@ -443,14 +443,14 @@ async def cmd_start(message: Message):
 
 @dp.callback_query(F.data == "my_profile")
 async def cb_my_profile(callback: CallbackQuery):
-    user = get_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)[cite: 1]
-    bal = float(user.get("balance") or 0.0)[cite: 1]
-    max_bal = float(user.get("max_balance") or bal)[cite: 1]
-    max_dep = float(user.get("max_deposit") or 0.0)[cite: 1]
-    total_games = int(user.get("total_deposits") or 0)[cite: 1]
-    games_won = int(user.get("games_won") or 0)[cite: 1]
-    winrate = (games_won / total_games * 100) if total_games > 0 else 0.0[cite: 1]
-    xray_status = "Есть ✅" if (user.get("has_xray") or (callback.from_user.username or "").lower() == ADMIN_USERNAME.lower()) else "Нет ❌"[cite: 1]
+    user = get_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    bal = float(user.get("balance") or 0.0)
+    max_bal = float(user.get("max_balance") or bal)
+    max_dep = float(user.get("max_deposit") or 0.0)
+    total_games = int(user.get("total_deposits") or 0)
+    games_won = int(user.get("games_won") or 0)
+    winrate = (games_won / total_games * 100) if total_games > 0 else 0.0
+    xray_status = "Есть ✅" if (user.get("has_xray") or (callback.from_user.username or "").lower() == ADMIN_USERNAME.lower()) else "Нет ❌"
 
     await callback.answer(
         f"ID: {user['user_id']}\n"
@@ -466,21 +466,21 @@ async def cb_my_profile(callback: CallbackQuery):
 
 @dp.message(F.text.lower().in_(["стата", "статистика", "/stat"]))
 async def handle_show_stat(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
     if message.reply_to_message:
         target = get_user(
             message.reply_to_message.from_user.id,
             message.reply_to_message.from_user.username,
             message.reply_to_message.from_user.first_name
-        )[cite: 1]
+        )
     else:
-        target = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
+        target = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
 
-    max_bal = float(target.get("max_balance") or 0.0)[cite: 1]
-    max_dep = float(target.get("max_deposit") or 0.0)[cite: 1]
-    total_games = int(target.get("total_deposits") or 0)[cite: 1]
-    games_won = int(target.get("games_won") or 0)[cite: 1]
-    winrate = (games_won / total_games * 100) if total_games > 0 else 0.0[cite: 1]
+    max_bal = float(target.get("max_balance") or 0.0)
+    max_dep = float(target.get("max_deposit") or 0.0)
+    total_games = int(target.get("total_deposits") or 0)
+    games_won = int(target.get("games_won") or 0)
+    winrate = (games_won / total_games * 100) if total_games > 0 else 0.0
 
     await message.reply(
         f"id: <code>{target['user_id']}</code>\n"
@@ -495,70 +495,70 @@ async def handle_show_stat(message: Message):
 # ================= 1. МИНЫ =================
 @dp.message(F.text.lower().startswith("мины"))
 async def handle_mines_command(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    user_id = message.from_user.id[cite: 1]
-    user = get_user(user_id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    if user.get("is_frozen"):[cite: 1]
-        await message.reply("⛔ Ваш аккаунт заморожен администратором.")[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    user_id = message.from_user.id
+    user = get_user(user_id, message.from_user.username, message.from_user.first_name)
+    if user.get("is_frozen"):
+        await message.reply("⛔ Ваш аккаунт заморожен администратором.")
         return
 
-    user_bal = float(user.get("balance") or 0.0)[cite: 1]
-    text = message.text.lower().strip()[cite: 1]
+    user_bal = float(user.get("balance") or 0.0)
+    text = message.text.lower().strip()
 
-    args_text = text[4:].strip()[cite: 1]
-    if not args_text:[cite: 1]
-        await message.reply("❌ Введите сумму ставки. Пример: <code>мины 100</code> или <code>мины 100 24 шт</code>", parse_mode="HTML")[cite: 1]
+    args_text = text[4:].strip()
+    if not args_text:
+        await message.reply("❌ Введите сумму ставки. Пример: <code>мины 100</code> или <code>мины 100 24 шт</code>", parse_mode="HTML")
         return
 
-    allowed_mines = [1, 5, 10, 15, 20, 24][cite: 1]
-    mines_count = None[cite: 1]
-    bet = None[cite: 1]
+    allowed_mines = [1, 5, 10, 15, 20, 24]
+    mines_count = None
+    bet = None
 
-    mines_match = re.search(r"\b(\d+)\s*(?:шт|мин|м)\b", args_text)[cite: 1]
-    if mines_match:[cite: 1]
-        val = int(mines_match.group(1))[cite: 1]
-        if val in allowed_mines:[cite: 1]
-            mines_count = val[cite: 1]
-            set_user_mines(user_id, mines_count)[cite: 1]
-            args_text = args_text[:mines_match.start()] + " " + args_text[mines_match.end():][cite: 1]
+    mines_match = re.search(r"\b(\d+)\s*(?:шт|мин|м)\b", args_text)
+    if mines_match:
+        val = int(mines_match.group(1))
+        if val in allowed_mines:
+            mines_count = val
+            set_user_mines(user_id, mines_count)
+            args_text = args_text[:mines_match.start()] + " " + args_text[mines_match.end():]
         else:
-            await message.reply(f"❌ Недопустимое число мин. Доступны: {', '.join(f'{x}шт' for x in allowed_mines)}")[cite: 1]
+            await message.reply(f"❌ Недопустимое число мин. Доступны: {', '.join(f'{x}шт' for x in allowed_mines)}")
             return
 
-    tokens = args_text.replace(",", ".").split()[cite: 1]
-    numbers = [][cite: 1]
-    for t in tokens:[cite: 1]
+    tokens = args_text.replace(",", ".").split()
+    numbers = []
+    for t in tokens:
         try:
-            numbers.append(float(t))[cite: 1]
+            numbers.append(float(t))
         except ValueError:
             pass
 
-    if not numbers:[cite: 1]
-        await message.reply("❌ Не указана сумма ставки. Пример: <code>мины 50 10 шт</code>", parse_mode="HTML")[cite: 1]
+    if not numbers:
+        await message.reply("❌ Не указана сумма ставки. Пример: <code>мины 50 10 шт</code>", parse_mode="HTML")
         return
 
-    if mines_count is None and len(numbers) >= 2:[cite: 1]
-        if int(numbers[1]) in allowed_mines:[cite: 1]
-            bet = numbers[0][cite: 1]
-            mines_count = int(numbers[1])[cite: 1]
-            set_user_mines(user_id, mines_count)[cite: 1]
-        elif int(numbers[0]) in allowed_mines:[cite: 1]
-            mines_count = int(numbers[0])[cite: 1]
-            bet = numbers[1][cite: 1]
-            set_user_mines(user_id, mines_count)[cite: 1]
+    if mines_count is None and len(numbers) >= 2:
+        if int(numbers[1]) in allowed_mines:
+            bet = numbers[0]
+            mines_count = int(numbers[1])
+            set_user_mines(user_id, mines_count)
+        elif int(numbers[0]) in allowed_mines:
+            mines_count = int(numbers[0])
+            bet = numbers[1]
+            set_user_mines(user_id, mines_count)
 
-    if bet is None:[cite: 1]
-        bet = numbers[0][cite: 1]
-    if mines_count is None:[cite: 1]
-        mines_count = user.get("default_mines") or 5[cite: 1]
+    if bet is None:
+        bet = numbers[0]
+    if mines_count is None:
+        mines_count = user.get("default_mines") or 5
 
-    bet = round(bet, 2)[cite: 1]
-    if bet <= 0 or user_bal < bet:[cite: 1]
-        await message.reply(f"❌ Недостаточно средств! Баланс: <b>{user_bal:.2f} TON</b>", parse_mode="HTML")[cite: 1]
+    bet = round(bet, 2)
+    if bet <= 0 or user_bal < bet:
+        await message.reply(f"❌ Недостаточно средств! Баланс: <b>{user_bal:.2f} TON</b>", parse_mode="HTML")
         return
 
-    update_balance(user_id, -bet)[cite: 1]
-    player_name = get_name(user_id, message.from_user.username, message.from_user.first_name)[cite: 1]
+    update_balance(user_id, -bet)
+    player_name = get_name(user_id, message.from_user.username, message.from_user.first_name)
 
     sent_msg = await message.answer(
         f"💣 <b>Игра началась!</b>\n\n"
@@ -567,13 +567,13 @@ async def handle_mines_command(message: Message):
         f"🧨 Мин: <b>{mines_count} шт.</b> | 💎 Безопасных клеток: <b>{TOTAL_TILES - mines_count}</b>\n\n"
         "Открывайте клетки:",
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
-    game_id = f"{sent_msg.chat.id}_{sent_msg.message_id}"[cite: 1]
-    if user_id in custom_next_mines and len(custom_next_mines[user_id]) == mines_count:[cite: 1]
-        mines_positions = custom_next_mines.pop(user_id)[cite: 1]
+    game_id = f"{sent_msg.chat.id}_{sent_msg.message_id}"
+    if user_id in custom_next_mines and len(custom_next_mines[user_id]) == mines_count:
+        mines_positions = custom_next_mines.pop(user_id)
     else:
-        mines_positions = set(random.sample(range(TOTAL_TILES), mines_count))[cite: 1]
+        mines_positions = set(random.sample(range(TOTAL_TILES), mines_count))
 
     games[game_id] = {
         "user_id": user_id,
@@ -584,59 +584,59 @@ async def handle_mines_command(message: Message):
         "mines_pos": mines_positions,
         "opened": set(),
         "last_click": 0.0
-    }[cite: 1]
+    }
 
-    await sent_msg.edit_reply_markup(reply_markup=generate_game_keyboard(game_id))[cite: 1]
+    await sent_msg.edit_reply_markup(reply_markup=generate_game_keyboard(game_id))
 
 
 @dp.callback_query(F.data.startswith("tile:"))
 async def handle_click_tile(callback: CallbackQuery):
-    _, game_id, tile_str = callback.data.split(":", 2)[cite: 1]
-    tile_idx = int(tile_str)[cite: 1]
+    _, game_id, tile_str = callback.data.split(":", 2)
+    tile_idx = int(tile_str)
 
-    if game_id not in games:[cite: 1]
-        await callback.answer("Игра уже завершена.", show_alert=True)[cite: 1]
+    if game_id not in games:
+        await callback.answer("Игра уже завершена.", show_alert=True)
         return
 
-    game = games[game_id][cite: 1]
-    if callback.from_user.id != game["user_id"]:[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    game = games[game_id]
+    if callback.from_user.id != game["user_id"]:
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
 
-    now = time.time()[cite: 1]
-    if now - game.get("last_click", 0) < 0.35:[cite: 1]
-        await callback.answer("⏳ Не спешите!", show_alert=False)[cite: 1]
+    now = time.time()
+    if now - game.get("last_click", 0) < 0.35:
+        await callback.answer("⏳ Не спешите!", show_alert=False)
         return
-    game["last_click"] = now[cite: 1]
+    game["last_click"] = now
 
-    if tile_idx in game["opened"]:[cite: 1]
-        await callback.answer()[cite: 1]
-        return
-
-    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))[cite: 1]
-
-    if tile_idx in game["mines_pos"]:[cite: 1]
-        bet = game["bet"][cite: 1]
-        kb = generate_game_keyboard(game_id, reveal_all=True)[cite: 1]
-        user_id = game["user_id"][cite: 1]
-        del games[game_id][cite: 1]
-        record_game_result(user_id, won=False)[cite: 1]
-        await callback.answer()[cite: 1]
-        asyncio.create_task(animate_loss(callback.message, player_name, bet, kb))[cite: 1]
+    if tile_idx in game["opened"]:
+        await callback.answer()
         return
 
-    game["opened"].add(tile_idx)[cite: 1]
-    opened_len = len(game["opened"])[cite: 1]
-    safe_total = TOTAL_TILES - game["mines_count"][cite: 1]
+    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))
 
-    if opened_len == safe_total:[cite: 1]
-        mult = calculate_multiplier(game["mines_count"], opened_len)[cite: 1]
-        win_sum = round(game["bet"] * mult, 2)[cite: 1]
-        update_balance(game["user_id"], win_sum)[cite: 1]
-        kb = generate_game_keyboard(game_id, reveal_all=True)[cite: 1]
-        user_id = game["user_id"][cite: 1]
-        del games[game_id][cite: 1]
-        record_game_result(user_id, won=True)[cite: 1]
+    if tile_idx in game["mines_pos"]:
+        bet = game["bet"]
+        kb = generate_game_keyboard(game_id, reveal_all=True)
+        user_id = game["user_id"]
+        del games[game_id]
+        record_game_result(user_id, won=False)
+        await callback.answer()
+        asyncio.create_task(animate_loss(callback.message, player_name, bet, kb))
+        return
+
+    game["opened"].add(tile_idx)
+    opened_len = len(game["opened"])
+    safe_total = TOTAL_TILES - game["mines_count"]
+
+    if opened_len == safe_total:
+        mult = calculate_multiplier(game["mines_count"], opened_len)
+        win_sum = round(game["bet"] * mult, 2)
+        update_balance(game["user_id"], win_sum)
+        kb = generate_game_keyboard(game_id, reveal_all=True)
+        user_id = game["user_id"]
+        del games[game_id]
+        record_game_result(user_id, won=True)
 
         try:
             await callback.message.edit_text(
@@ -646,14 +646,14 @@ async def handle_click_tile(callback: CallbackQuery):
                 f"Выигрыш: <b>+{win_sum:.2f} TON</b> 💎",
                 reply_markup=kb,
                 parse_mode="HTML"
-            )[cite: 1]
+            )
         except Exception:
             pass
-        await callback.answer()[cite: 1]
+        await callback.answer()
         return
 
-    cur_mult = calculate_multiplier(game["mines_count"], opened_len)[cite: 1]
-    cur_win = round(game["bet"] * cur_mult, 2)[cite: 1]
+    cur_mult = calculate_multiplier(game["mines_count"], opened_len)
+    cur_win = round(game["bet"] * cur_mult, 2)
 
     try:
         await callback.message.edit_text(
@@ -664,64 +664,64 @@ async def handle_click_tile(callback: CallbackQuery):
             "Открывайте следующую клетку или забирайте TON:",
             reply_markup=generate_game_keyboard(game_id),
             parse_mode="HTML"
-        )[cite: 1]
-    except TelegramRetryAfter as e:[cite: 1]
-        await callback.answer(f"⏳ Слишком быстро! Подождите {e.retry_after} сек.", show_alert=True)[cite: 1]
+        )
+    except TelegramRetryAfter as e:
+        await callback.answer(f"⏳ Слишком быстро! Подождите {e.retry_after} сек.", show_alert=True)
         return
     except Exception:
         pass
-    await callback.answer()[cite: 1]
+    await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("cancel:"))
 async def handle_cancel_game(callback: CallbackQuery):
-    game_id = callback.data.split(":", 1)[1][cite: 1]
-    if game_id not in games:[cite: 1]
-        await callback.answer("Игра уже завершена.", show_alert=True)[cite: 1]
+    game_id = callback.data.split(":", 1)[1]
+    if game_id not in games:
+        await callback.answer("Игра уже завершена.", show_alert=True)
         return
-    game = games[game_id][cite: 1]
-    if callback.from_user.id != game["user_id"]:[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    game = games[game_id]
+    if callback.from_user.id != game["user_id"]:
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
-    if len(game["opened"]) > 0:[cite: 1]
-        await callback.answer("⚠️ Вы уже открыли ячейку! Отмена невозможна.", show_alert=True)[cite: 1]
+    if len(game["opened"]) > 0:
+        await callback.answer("⚠️ Вы уже открыли ячейку! Отмена невозможна.", show_alert=True)
         return
 
-    update_balance(game["user_id"], game["bet"])[cite: 1]
-    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))[cite: 1]
-    del games[game_id][cite: 1]
+    update_balance(game["user_id"], game["bet"])
+    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))
+    del games[game_id]
 
     await callback.message.edit_text(
         f"🚫 <b>Игра отменена!</b>\n\n👤 Игрок: <b>{player_name}</b>\n💵 Ставка <b>{game['bet']:.2f} TON</b> возвращена.",
         reply_markup=None,
         parse_mode="HTML"
-    )[cite: 1]
-    await callback.answer("Игра отменена!")[cite: 1]
+    )
+    await callback.answer("Игра отменена!")
 
 
 @dp.callback_query(F.data.startswith("cashout:"))
 async def handle_cashout(callback: CallbackQuery):
-    game_id = callback.data.split(":", 1)[1][cite: 1]
-    if game_id not in games:[cite: 1]
-        await callback.answer("Игра завершена.", show_alert=True)[cite: 1]
+    game_id = callback.data.split(":", 1)[1]
+    if game_id not in games:
+        await callback.answer("Игра завершена.", show_alert=True)
         return
-    game = games[game_id][cite: 1]
-    if callback.from_user.id != game["user_id"]:[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    game = games[game_id]
+    if callback.from_user.id != game["user_id"]:
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
-    if len(game["opened"]) == 0:[cite: 1]
-        await callback.answer("Откройте хотя бы одну ячейку!", show_alert=True)[cite: 1]
+    if len(game["opened"]) == 0:
+        await callback.answer("Откройте хотя бы одну ячейку!", show_alert=True)
         return
 
-    final_mult = calculate_multiplier(game["mines_count"], len(game["opened"]))[cite: 1]
-    win_sum = round(game["bet"] * final_mult, 2)[cite: 1]
-    update_balance(game["user_id"], win_sum)[cite: 1]
-    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))[cite: 1]
+    final_mult = calculate_multiplier(game["mines_count"], len(game["opened"]))
+    win_sum = round(game["bet"] * final_mult, 2)
+    update_balance(game["user_id"], win_sum)
+    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))
 
-    kb = generate_game_keyboard(game_id, reveal_all=True)[cite: 1]
-    user_id = game["user_id"][cite: 1]
-    del games[game_id][cite: 1]
-    record_game_result(user_id, won=True)[cite: 1]
+    kb = generate_game_keyboard(game_id, reveal_all=True)
+    user_id = game["user_id"]
+    del games[game_id]
+    record_game_result(user_id, won=True)
 
     try:
         await callback.message.edit_text(
@@ -730,48 +730,48 @@ async def handle_cashout(callback: CallbackQuery):
             f"Выигрыш: <b>+{win_sum:.2f} TON</b> 💎\n\nКарта раунда:",
             reply_markup=kb,
             parse_mode="HTML"
-        )[cite: 1]
+        )
     except Exception:
         pass
-    await callback.answer()[cite: 1]
+    await callback.answer()
 
 
 # ================= 2. БАШНЯ ДЖОКЕР =================
 @dp.message(F.text.lower().startswith("джокер"))
 async def handle_joker_command(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    user_id = message.from_user.id[cite: 1]
-    user = get_user(user_id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    if user.get("is_frozen"):[cite: 1]
-        await message.reply("⛔ Ваш аккаунт заморожен.")[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    user_id = message.from_user.id
+    user = get_user(user_id, message.from_user.username, message.from_user.first_name)
+    if user.get("is_frozen"):
+        await message.reply("⛔ Ваш аккаунт заморожен.")
         return
 
-    parts = message.text.strip().split()[cite: 1]
-    if len(parts) < 2:[cite: 1]
-        await message.reply("❌ Введите ставку. Пример: <code>джокер 100</code>", parse_mode="HTML")[cite: 1]
+    parts = message.text.strip().split()
+    if len(parts) < 2:
+        await message.reply("❌ Введите ставку. Пример: <code>джокер 100</code>", parse_mode="HTML")
         return
 
     try:
-        bet = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
+        bet = round(float(parts[1].replace(",", ".")), 2)
     except ValueError:
         return
 
-    if bet <= 0 or float(user["balance"]) < bet:[cite: 1]
-        await message.reply("❌ Недостаточно средств!")[cite: 1]
+    if bet <= 0 or float(user["balance"]) < bet:
+        await message.reply("❌ Недостаточно средств!")
         return
 
-    update_balance(user_id, -bet)[cite: 1]
-    player_name = get_name(user_id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    display_title = f"{html.escape(message.from_user.first_name)} {player_name}"[cite: 1]
+    update_balance(user_id, -bet)
+    player_name = get_name(user_id, message.from_user.username, message.from_user.first_name)
+    display_title = f"{html.escape(message.from_user.first_name)} {player_name}"
 
     sent_msg = await message.answer(
         f"<b>{display_title}</b>, вы начали игру джокер!\n"
         f"💰 Ставка: {int(bet) if bet.is_integer() else bet} TON\n\n"
         "Выберите карту:",
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
-    game_id = f"{sent_msg.chat.id}_{sent_msg.message_id}"[cite: 1]
+    game_id = f"{sent_msg.chat.id}_{sent_msg.message_id}"
     joker_games[game_id] = {
         "user_id": user_id,
         "first_name": message.from_user.first_name,
@@ -780,41 +780,41 @@ async def handle_joker_command(message: Message):
         "history": [],
         "current_skull": random.randint(0, 2),
         "last_click": 0.0
-    }[cite: 1]
-    await sent_msg.edit_reply_markup(reply_markup=generate_joker_keyboard(game_id))[cite: 1]
+    }
+    await sent_msg.edit_reply_markup(reply_markup=generate_joker_keyboard(game_id))
 
 
 @dp.callback_query(F.data.startswith("jk_pick:"))
 async def handle_joker_pick(callback: CallbackQuery):
-    _, game_id, col_str = callback.data.split(":")[cite: 1]
-    col_idx = int(col_str)[cite: 1]
+    _, game_id, col_str = callback.data.split(":")
+    col_idx = int(col_str)
 
-    if game_id not in joker_games:[cite: 1]
-        await callback.answer("Игра завершена.", show_alert=True)[cite: 1]
+    if game_id not in joker_games:
+        await callback.answer("Игра завершена.", show_alert=True)
         return
 
-    game = joker_games[game_id][cite: 1]
-    if callback.from_user.id != game["user_id"]:[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    game = joker_games[game_id]
+    if callback.from_user.id != game["user_id"]:
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
 
-    now = time.time()[cite: 1]
-    if now - game.get("last_click", 0) < 0.35:[cite: 1]
-        await callback.answer("⏳ Не спешите!", show_alert=False)[cite: 1]
+    now = time.time()
+    if now - game.get("last_click", 0) < 0.35:
+        await callback.answer("⏳ Не спешите!", show_alert=False)
         return
-    game["last_click"] = now[cite: 1]
+    game["last_click"] = now
 
-    skull_col = game["current_skull"][cite: 1]
-    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))[cite: 1]
-    display_title = f"{html.escape(game['first_name'])} {player_name}"[cite: 1]
+    skull_col = game["current_skull"]
+    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))
+    display_title = f"{html.escape(game['first_name'])} {player_name}"
 
-    if col_idx == skull_col:[cite: 1]
-        game["history"].append({"chosen": col_idx, "skull": skull_col})[cite: 1]
-        kb = generate_joker_keyboard(game_id, reveal_all=True)[cite: 1]
-        user_id = game["user_id"][cite: 1]
-        bet = game["bet"][cite: 1]
-        del joker_games[game_id][cite: 1]
-        record_game_result(user_id, won=False)[cite: 1]
+    if col_idx == skull_col:
+        game["history"].append({"chosen": col_idx, "skull": skull_col})
+        kb = generate_joker_keyboard(game_id, reveal_all=True)
+        user_id = game["user_id"]
+        bet = game["bet"]
+        del joker_games[game_id]
+        record_game_result(user_id, won=False)
 
         try:
             await callback.message.edit_text(
@@ -822,23 +822,23 @@ async def handle_joker_pick(callback: CallbackQuery):
                 f"💰 Ставка: {int(bet) if bet.is_integer() else bet} TON",
                 reply_markup=kb,
                 parse_mode="HTML"
-            )[cite: 1]
+            )
         except Exception:
             pass
-        await callback.answer()[cite: 1]
+        await callback.answer()
         return
 
-    game["history"].append({"chosen": col_idx, "skull": skull_col})[cite: 1]
-    curr_level = len(game["history"])[cite: 1]
-    mult = JOKER_MULTS[curr_level - 1][cite: 1]
-    curr_win = round(game["bet"] * mult, 2)[cite: 1]
+    game["history"].append({"chosen": col_idx, "skull": skull_col})
+    curr_level = len(game["history"])
+    mult = JOKER_MULTS[curr_level - 1]
+    curr_win = round(game["bet"] * mult, 2)
 
-    if curr_level >= len(JOKER_MULTS):[cite: 1]
-        update_balance(game["user_id"], curr_win)[cite: 1]
-        kb = generate_joker_keyboard(game_id, reveal_all=True)[cite: 1]
-        user_id = game["user_id"][cite: 1]
-        del joker_games[game_id][cite: 1]
-        record_game_result(user_id, won=True)[cite: 1]
+    if curr_level >= len(JOKER_MULTS):
+        update_balance(game["user_id"], curr_win)
+        kb = generate_joker_keyboard(game_id, reveal_all=True)
+        user_id = game["user_id"]
+        del joker_games[game_id]
+        record_game_result(user_id, won=True)
 
         await callback.message.edit_text(
             f"<b>{display_title}</b>, максимальный выигрыш!\n"
@@ -846,11 +846,11 @@ async def handle_joker_pick(callback: CallbackQuery):
             f"💵 Выигрыш: x{str(mult).replace('.', ',')} | {curr_win:.2f} TON",
             reply_markup=kb,
             parse_mode="HTML"
-        )[cite: 1]
-        await callback.answer()[cite: 1]
+        )
+        await callback.answer()
         return
 
-    game["current_skull"] = random.randint(0, 2)[cite: 1]
+    game["current_skull"] = random.randint(0, 2)
     try:
         await callback.message.edit_text(
             f"<b>{display_title}</b>, вы начали игру джокер!\n"
@@ -858,33 +858,33 @@ async def handle_joker_pick(callback: CallbackQuery):
             f"💵 Выигрыш: x{str(mult).replace('.', ',')} | {curr_win:.2f} TON",
             reply_markup=generate_joker_keyboard(game_id),
             parse_mode="HTML"
-        )[cite: 1]
+        )
     except Exception:
         pass
-    await callback.answer()[cite: 1]
+    await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("jk_cash:"))
 async def handle_joker_cashout(callback: CallbackQuery):
-    game_id = callback.data.split(":")[1][cite: 1]
-    if game_id not in joker_games:[cite: 1]
-        await callback.answer("Игра уже завершена.", show_alert=True)[cite: 1]
+    game_id = callback.data.split(":")[1]
+    if game_id not in joker_games:
+        await callback.answer("Игра уже завершена.", show_alert=True)
         return
-    game = joker_games[game_id][cite: 1]
-    if callback.from_user.id != game["user_id"]:[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    game = joker_games[game_id]
+    if callback.from_user.id != game["user_id"]:
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
 
-    mult = JOKER_MULTS[len(game["history"]) - 1][cite: 1]
-    win_sum = round(game["bet"] * mult, 2)[cite: 1]
-    update_balance(game["user_id"], win_sum)[cite: 1]
-    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))[cite: 1]
-    display_title = f"{html.escape(game['first_name'])} {player_name}"[cite: 1]
+    mult = JOKER_MULTS[len(game["history"]) - 1]
+    win_sum = round(game["bet"] * mult, 2)
+    update_balance(game["user_id"], win_sum)
+    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))
+    display_title = f"{html.escape(game['first_name'])} {player_name}"
 
-    kb = generate_joker_keyboard(game_id, reveal_all=True)[cite: 1]
-    user_id = game["user_id"][cite: 1]
-    del joker_games[game_id][cite: 1]
-    record_game_result(user_id, won=True)[cite: 1]
+    kb = generate_joker_keyboard(game_id, reveal_all=True)
+    user_id = game["user_id"]
+    del joker_games[game_id]
+    record_game_result(user_id, won=True)
 
     try:
         await callback.message.edit_text(
@@ -893,49 +893,49 @@ async def handle_joker_cashout(callback: CallbackQuery):
             f"💵 Выигрыш: x{str(mult).replace('.', ',')} | {win_sum:.2f} TON",
             reply_markup=kb,
             parse_mode="HTML"
-        )[cite: 1]
+        )
     except Exception:
         pass
-    await callback.answer("Зачислено на баланс!")[cite: 1]
+    await callback.answer("Зачислено на баланс!")
 
 
 # ================= 3. 21 ОЧКО (BLACKJACK) =================
 @dp.message(F.text.lower().startswith("21"))
 async def handle_blackjack(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    if user.get("is_frozen"):[cite: 1]
-        await message.reply("⛔ Ваш аккаунт заморожен.")[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    if user.get("is_frozen"):
+        await message.reply("⛔ Ваш аккаунт заморожен.")
         return
 
-    parts = message.text.strip().split()[cite: 1]
-    if len(parts) < 2:[cite: 1]
-        await message.reply("❌ Введите сумму ставки. Пример: <code>21 100</code>", parse_mode="HTML")[cite: 1]
+    parts = message.text.strip().split()
+    if len(parts) < 2:
+        await message.reply("❌ Введите сумму ставки. Пример: <code>21 100</code>", parse_mode="HTML")
         return
 
     try:
-        bet = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
+        bet = round(float(parts[1].replace(",", ".")), 2)
     except ValueError:
         return
 
-    if bet <= 0 or float(user["balance"]) < bet:[cite: 1]
-        await message.reply("❌ Недостаточно средств!")[cite: 1]
+    if bet <= 0 or float(user["balance"]) < bet:
+        await message.reply("❌ Недостаточно средств!")
         return
 
-    update_balance(user["user_id"], -bet)[cite: 1]
-    deck = DECK.copy()[cite: 1]
-    random.shuffle(deck)[cite: 1]
+    update_balance(user["user_id"], -bet)
+    deck = DECK.copy()
+    random.shuffle(deck)
 
-    player_cards = [deck.pop(), deck.pop()][cite: 1]
-    dealer_cards = [deck.pop(), deck.pop()][cite: 1]
+    player_cards = [deck.pop(), deck.pop()]
+    dealer_cards = [deck.pop(), deck.pop()]
 
-    player_pts = calc_hand(player_cards)[cite: 1]
-    player_name = get_name(user["user_id"], user["username"], message.from_user.first_name)[cite: 1]
+    player_pts = calc_hand(player_cards)
+    player_name = get_name(user["user_id"], user["username"], message.from_user.first_name)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🃏 Взять карту", callback_data="bj_hit"),
         InlineKeyboardButton(text="🛑 Вскрыться", callback_data="bj_stand")
-    ]])[cite: 1]
+    ]])
 
     msg = await message.answer(
         f"♠️ <b>21 Очко</b>\n\n"
@@ -944,7 +944,7 @@ async def handle_blackjack(message: Message):
         f"Карта дилера: [{dealer_cards[0][0]}] [❓]",
         reply_markup=kb,
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
     bj_games[f"{msg.chat.id}_{msg.message_id}"] = {
         "user_id": user["user_id"],
@@ -954,44 +954,44 @@ async def handle_blackjack(message: Message):
         "deck": deck,
         "player": player_cards,
         "dealer": dealer_cards
-    }[cite: 1]
+    }
 
 
 @dp.callback_query(F.data.in_(["bj_hit", "bj_stand"]))
 async def handle_bj_actions(callback: CallbackQuery):
-    game_id = f"{callback.message.chat.id}_{callback.message.message_id}"[cite: 1]
-    if game_id not in bj_games:[cite: 1]
-        await callback.answer("Раунд завершен.", show_alert=True)[cite: 1]
+    game_id = f"{callback.message.chat.id}_{callback.message.message_id}"
+    if game_id not in bj_games:
+        await callback.answer("Раунд завершен.", show_alert=True)
         return
 
-    game = bj_games[game_id][cite: 1]
-    if callback.from_user.id != game["user_id"]:[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    game = bj_games[game_id]
+    if callback.from_user.id != game["user_id"]:
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
 
-    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))[cite: 1]
+    player_name = get_name(game["user_id"], game.get("username"), game.get("first_name"))
 
-    if callback.data == "bj_hit":[cite: 1]
-        game["player"].append(game["deck"].pop())[cite: 1]
-        pts = calc_hand(game["player"])[cite: 1]
+    if callback.data == "bj_hit":
+        game["player"].append(game["deck"].pop())
+        pts = calc_hand(game["player"])
 
-        if pts > 21:[cite: 1]
-            del bj_games[game_id][cite: 1]
-            record_game_result(game["user_id"], won=False)[cite: 1]
+        if pts > 21:
+            del bj_games[game_id]
+            record_game_result(game["user_id"], won=False)
             await callback.message.edit_text(
                 f"💥 <b>Перебор! ({pts} очков)</b>\n\n"
                 f"👤 {player_name} проиграл <b>{game['bet']:.2f} TON</b>\n"
                 f"Карты: {format_hand(game['player'])}",
                 reply_markup=None,
                 parse_mode="HTML"
-            )[cite: 1]
-            await callback.answer()[cite: 1]
+            )
+            await callback.answer()
             return
 
         kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="🃏 Взять карту", callback_data="bj_hit"),
             InlineKeyboardButton(text="🛑 Вскрыться", callback_data="bj_stand")
-        ]])[cite: 1]
+        ]])
         await callback.message.edit_text(
             f"♠️ <b>21 Очко</b>\n\n"
             f"👤 {player_name} | Ставка: <b>{game['bet']:.2f} TON</b>\n"
@@ -999,30 +999,30 @@ async def handle_bj_actions(callback: CallbackQuery):
             f"Карта дилера: [{game['dealer'][0][0]}] [❓]",
             reply_markup=kb,
             parse_mode="HTML"
-        )[cite: 1]
-        await callback.answer()[cite: 1]
+        )
+        await callback.answer()
         return
 
-    if callback.data == "bj_stand":[cite: 1]
-        del bj_games[game_id][cite: 1]
-        player_pts = calc_hand(game["player"])[cite: 1]
-        dealer_pts = calc_hand(game["dealer"])[cite: 1]
+    if callback.data == "bj_stand":
+        del bj_games[game_id]
+        player_pts = calc_hand(game["player"])
+        dealer_pts = calc_hand(game["dealer"])
 
-        while dealer_pts < 17:[cite: 1]
-            game["dealer"].append(game["deck"].pop())[cite: 1]
-            dealer_pts = calc_hand(game["dealer"])[cite: 1]
+        while dealer_pts < 17:
+            game["dealer"].append(game["deck"].pop())
+            dealer_pts = calc_hand(game["dealer"])
 
-        if dealer_pts > 21 or player_pts > dealer_pts:[cite: 1]
-            win = round(game["bet"] * 2.0, 2)[cite: 1]
-            update_balance(game["user_id"], win)[cite: 1]
-            record_game_result(game["user_id"], won=True)[cite: 1]
-            res_text = f"🏆 <b>ПОБЕДА!</b>\nВыигрыш: <b>+{win:.2f} TON</b> 💎"[cite: 1]
-        elif player_pts == dealer_pts:[cite: 1]
-            update_balance(game["user_id"], game["bet"])[cite: 1]
-            res_text = "🤝 <b>Ничья!</b> Ставка возвращена."[cite: 1]
+        if dealer_pts > 21 or player_pts > dealer_pts:
+            win = round(game["bet"] * 2.0, 2)
+            update_balance(game["user_id"], win)
+            record_game_result(game["user_id"], won=True)
+            res_text = f"🏆 <b>ПОБЕДА!</b>\nВыигрыш: <b>+{win:.2f} TON</b> 💎"
+        elif player_pts == dealer_pts:
+            update_balance(game["user_id"], game["bet"])
+            res_text = "🤝 <b>Ничья!</b> Ставка возвращена."
         else:
-            record_game_result(game["user_id"], won=False)[cite: 1]
-            res_text = f"💀 <b>Дилер победил!</b> Потеряно: <b>{game['bet']:.2f} TON</b>"[cite: 1]
+            record_game_result(game["user_id"], won=False)
+            res_text = f"💀 <b>Дилер победил!</b> Потеряно: <b>{game['bet']:.2f} TON</b>"
 
         await callback.message.edit_text(
             f"♠️ <b>Итог игры 21 Очко</b>\n\n"
@@ -1031,353 +1031,353 @@ async def handle_bj_actions(callback: CallbackQuery):
             f"{res_text}",
             reply_markup=None,
             parse_mode="HTML"
-        )[cite: 1]
-        await callback.answer()[cite: 1]
+        )
+        await callback.answer()
 
 
 # ================= .nextgame =================
 @dp.message(F.text.lower().startswith(".nextgame"))
 async def handle_nextgame(message: Message):
-    user_name = (message.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
-        await message.reply("⛔ Команда доступна только администратору @lithromantov.")[cite: 1]
+    user_name = (message.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
+        await message.reply("⛔ Команда доступна только администратору @lithromantov.")
         return
 
-    if message.chat.type != "private":[cite: 1]
-        await message.reply("❌ Настройку .nextgame можно вызывать только в ЛС с ботом.")[cite: 1]
+    if message.chat.type != "private":
+        await message.reply("❌ Настройку .nextgame можно вызывать только в ЛС с ботом.")
         return
 
-    user_id = message.from_user.id[cite: 1]
-    parts = message.text.strip().split()[cite: 1]
-    if len(parts) < 2:[cite: 1]
-        await message.reply("❌ Укажите количество мин. Пример: <code>.nextgame 15шт</code>", parse_mode="HTML")[cite: 1]
+    user_id = message.from_user.id
+    parts = message.text.strip().split()
+    if len(parts) < 2:
+        await message.reply("❌ Укажите количество мин. Пример: <code>.nextgame 15шт</code>", parse_mode="HTML")
         return
 
-    match = re.search(r"(\d+)", parts[1])[cite: 1]
-    if not match:[cite: 1]
-        await message.reply("❌ Число мин не распознано. Пример: <code>.nextgame 15шт</code>", parse_mode="HTML")[cite: 1]
+    match = re.search(r"(\d+)", parts[1])
+    if not match:
+        await message.reply("❌ Число мин не распознано. Пример: <code>.nextgame 15шт</code>", parse_mode="HTML")
         return
 
-    total_mines = int(match.group(1))[cite: 1]
-    if not (1 <= total_mines <= 24):[cite: 1]
-        await message.reply("❌ Допустимое количество мин от 1 до 24.")[cite: 1]
+    total_mines = int(match.group(1))
+    if not (1 <= total_mines <= 24):
+        await message.reply("❌ Допустимое количество мин от 1 до 24.")
         return
 
     nextgame_setups[user_id] = {
         "total_mines": total_mines,
         "chosen_tiles": set()
-    }[cite: 1]
+    }
 
     await message.answer(
         f"🛠 <b>Настройка следующей игры ({total_mines} мин)</b>\n\n"
         f"Кликайте по ячейкам, чтобы расставить мины (нужно выбрать ровно {total_mines} шт.):",
         reply_markup=generate_nextgame_keyboard(user_id),
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
 
 @dp.callback_query(F.data.startswith("ng_tile:"))
 async def handle_ng_tile(callback: CallbackQuery):
-    user_name = (callback.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
-        await callback.answer("⛔ Доступ запрещён.", show_alert=True)[cite: 1]
+    user_name = (callback.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
+        await callback.answer("⛔ Доступ запрещён.", show_alert=True)
         return
 
-    user_id = callback.from_user.id[cite: 1]
-    if user_id not in nextgame_setups:[cite: 1]
-        await callback.answer("Сессия настройки истекла.", show_alert=True)[cite: 1]
+    user_id = callback.from_user.id
+    if user_id not in nextgame_setups:
+        await callback.answer("Сессия настройки истекла.", show_alert=True)
         return
 
-    tile_idx = int(callback.data.split(":", 1)[1])[cite: 1]
-    setup = nextgame_setups[user_id][cite: 1]
+    tile_idx = int(callback.data.split(":", 1)[1])
+    setup = nextgame_setups[user_id]
 
-    if tile_idx in setup["chosen_tiles"]:[cite: 1]
-        setup["chosen_tiles"].remove(tile_idx)[cite: 1]
+    if tile_idx in setup["chosen_tiles"]:
+        setup["chosen_tiles"].remove(tile_idx)
     else:
-        if len(setup["chosen_tiles"]) >= setup["total_mines"]:[cite: 1]
-            await callback.answer(f"⚠️ Уже выбрано максимум мин ({setup['total_mines']} шт.)!", show_alert=True)[cite: 1]
+        if len(setup["chosen_tiles"]) >= setup["total_mines"]:
+            await callback.answer(f"⚠️ Уже выбрано максимум мин ({setup['total_mines']} шт.)!", show_alert=True)
             return
-        setup["chosen_tiles"].add(tile_idx)[cite: 1]
+        setup["chosen_tiles"].add(tile_idx)
 
-    await callback.message.edit_reply_markup(reply_markup=generate_nextgame_keyboard(user_id))[cite: 1]
-    await callback.answer()[cite: 1]
+    await callback.message.edit_reply_markup(reply_markup=generate_nextgame_keyboard(user_id))
+    await callback.answer()
 
 
 @dp.callback_query(F.data == "ng_save")
 async def handle_ng_save(callback: CallbackQuery):
-    user_name = (callback.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
-        await callback.answer("⛔ Доступ запрещён.", show_alert=True)[cite: 1]
+    user_name = (callback.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
+        await callback.answer("⛔ Доступ запрещён.", show_alert=True)
         return
 
-    user_id = callback.from_user.id[cite: 1]
-    setup = nextgame_setups.get(user_id)[cite: 1]
-    if not setup or len(setup["chosen_tiles"]) != setup["total_mines"]:[cite: 1]
-        await callback.answer(f"Выберите ровно {setup['total_mines']} мин!", show_alert=True)[cite: 1]
+    user_id = callback.from_user.id
+    setup = nextgame_setups.get(user_id)
+    if not setup or len(setup["chosen_tiles"]) != setup["total_mines"]:
+        await callback.answer(f"Выберите ровно {setup['total_mines']} мин!", show_alert=True)
         return
 
-    custom_next_mines[user_id] = set(setup["chosen_tiles"])[cite: 1]
-    mines_count = setup["total_mines"][cite: 1]
-    del nextgame_setups[user_id][cite: 1]
+    custom_next_mines[user_id] = set(setup["chosen_tiles"])
+    mines_count = setup["total_mines"]
+    del nextgame_setups[user_id]
 
     await callback.message.edit_text(
         f"✅ <b>Расстановка сохранена!</b>\n\n"
         f"В твоей следующей игре на <b>{mines_count} мин</b> мины окажутся точно на выбранных позициях.",
         reply_markup=None,
         parse_mode="HTML"
-    )[cite: 1]
-    await callback.answer("Сохранено!")[cite: 1]
+    )
+    await callback.answer("Сохранено!")
 
 
 @dp.callback_query(F.data == "ng_cancel")
 async def handle_ng_cancel(callback: CallbackQuery):
-    user_name = (callback.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
-        await callback.answer("⛔ Доступ запрещён.", show_alert=True)[cite: 1]
+    user_name = (callback.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
+        await callback.answer("⛔ Доступ запрещён.", show_alert=True)
         return
 
-    user_id = callback.from_user.id[cite: 1]
-    if user_id in nextgame_setups:[cite: 1]
-        del nextgame_setups[user_id][cite: 1]
-    await callback.message.edit_text("❌ Настройка следующей игры отменена.", reply_markup=None)[cite: 1]
-    await callback.answer("Отменено!")[cite: 1]
+    user_id = callback.from_user.id
+    if user_id in nextgame_setups:
+        del nextgame_setups[user_id]
+    await callback.message.edit_text("❌ Настройка следующей игры отменена.", reply_markup=None)
+    await callback.answer("Отменено!")
 
 
 # ================= АДМИН-КОМАНДЫ =================
 @dp.message(F.text.lower().startswith(".setbal"))
 async def handle_admin_setbal(message: Message):
-    if (message.from_user.username or "").lower() != ADMIN_USERNAME.lower():[cite: 1]
+    if (message.from_user.username or "").lower() != ADMIN_USERNAME.lower():
         return
-    parts = message.text.strip().split()[cite: 1]
-    target_user = None[cite: 1]
-    amount = None[cite: 1]
+    parts = message.text.strip().split()
+    target_user = None
+    amount = None
 
-    if message.reply_to_message and len(parts) >= 2:[cite: 1]
+    if message.reply_to_message and len(parts) >= 2:
         try:
-            amount = float(parts[1].replace(",", "."))[cite: 1]
-            target_user = get_user(message.reply_to_message.from_user.id)[cite: 1]
+            amount = float(parts[1].replace(",", "."))
+            target_user = get_user(message.reply_to_message.from_user.id)
         except ValueError:
             pass
-    elif len(parts) >= 3:[cite: 1]
-        target_raw = parts[1][cite: 1]
+    elif len(parts) >= 3:
+        target_raw = parts[1]
         try:
-            amount = float(parts[2].replace(",", "."))[cite: 1]
-            target_user = get_user_by_username(target_raw) if target_raw.startswith("@") else get_user(int(target_raw))[cite: 1]
+            amount = float(parts[2].replace(",", "."))
+            target_user = get_user_by_username(target_raw) if target_raw.startswith("@") else get_user(int(target_raw))
         except ValueError:
             pass
 
-    if target_user and amount is not None:[cite: 1]
-        set_balance(target_user["user_id"], amount)[cite: 1]
-        t_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))[cite: 1]
-        await message.reply(f"🔧 Баланс игрока <b>{t_name}</b> установлен на <b>{amount:.2f} TON</b>", parse_mode="HTML")[cite: 1]
+    if target_user and amount is not None:
+        set_balance(target_user["user_id"], amount)
+        t_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))
+        await message.reply(f"🔧 Баланс игрока <b>{t_name}</b> установлен на <b>{amount:.2f} TON</b>", parse_mode="HTML")
     else:
-        await message.reply("❌ Формат: <code>.setbal @юзер 1000</code>", parse_mode="HTML")[cite: 1]
+        await message.reply("❌ Формат: <code>.setbal @юзер 1000</code>", parse_mode="HTML")
 
 
 @dp.message(F.text.lower().startswith(".freeze") | F.text.lower().startswith(".unfreeze"))
 async def handle_admin_freeze(message: Message):
-    if (message.from_user.username or "").lower() != ADMIN_USERNAME.lower():[cite: 1]
+    if (message.from_user.username or "").lower() != ADMIN_USERNAME.lower():
         return
-    is_freeze = message.text.lower().startswith(".freeze")[cite: 1]
-    parts = message.text.strip().split()[cite: 1]
-    target_user = None[cite: 1]
+    is_freeze = message.text.lower().startswith(".freeze")
+    parts = message.text.strip().split()
+    target_user = None
 
-    if message.reply_to_message:[cite: 1]
-        target_user = get_user(message.reply_to_message.from_user.id)[cite: 1]
-    elif len(parts) >= 2:[cite: 1]
-        target_raw = parts[1][cite: 1]
-        target_user = get_user_by_username(target_raw) if target_raw.startswith("@") else get_user(int(target_raw))[cite: 1]
+    if message.reply_to_message:
+        target_user = get_user(message.reply_to_message.from_user.id)
+    elif len(parts) >= 2:
+        target_raw = parts[1]
+        target_user = get_user_by_username(target_raw) if target_raw.startswith("@") else get_user(int(target_raw))
 
-    if target_user:[cite: 1]
-        set_user_freeze(target_user["user_id"], 1 if is_freeze else 0)[cite: 1]
-        t_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))[cite: 1]
-        status_text = "заморожен ❄️" if is_freeze else "разморожен 🔓"[cite: 1]
-        await message.reply(f"👤 Аккаунт <b>{t_name}</b> {status_text}!", parse_mode="HTML")[cite: 1]
+    if target_user:
+        set_user_freeze(target_user["user_id"], 1 if is_freeze else 0)
+        t_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))
+        status_text = "заморожен ❄️" if is_freeze else "разморожен 🔓"
+        await message.reply(f"👤 Аккаунт <b>{t_name}</b> {status_text}!", parse_mode="HTML")
 
 
 # ================= КЭШ / АНКЭШ / РЕНТГЕН =================
 @dp.message(F.text.lower().startswith("+рентген") | F.text.lower().startswith("-рентген"))
 async def handle_manage_xray(message: Message):
-    user_name = (message.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
+    user_name = (message.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
         return
 
-    is_grant = message.text.lower().startswith("+рентген")[cite: 1]
-    parts = message.text.strip().split()[cite: 1]
-    target_user = None[cite: 1]
+    is_grant = message.text.lower().startswith("+рентген")
+    parts = message.text.strip().split()
+    target_user = None
 
-    if message.reply_to_message:[cite: 1]
+    if message.reply_to_message:
         target_user = get_user(
             message.reply_to_message.from_user.id,
             message.reply_to_message.from_user.username,
             message.reply_to_message.from_user.first_name
-        )[cite: 1]
-    elif len(parts) >= 2:[cite: 1]
-        target_raw = parts[1][cite: 1]
-        if target_raw.startswith("@"):[cite: 1]
-            target_user = get_user_by_username(target_raw)[cite: 1]
-        elif target_raw.isdigit():[cite: 1]
-            target_user = get_user(int(target_raw))[cite: 1]
+        )
+    elif len(parts) >= 2:
+        target_raw = parts[1]
+        if target_raw.startswith("@"):
+            target_user = get_user_by_username(target_raw)
+        elif target_raw.isdigit():
+            target_user = get_user(int(target_raw))
 
-    if not target_user:[cite: 1]
-        await message.reply("❌ Укажите игрока ответом на сообщение или через <code>+рентген @username</code>", parse_mode="HTML")[cite: 1]
+    if not target_user:
+        await message.reply("❌ Укажите игрока ответом на сообщение или через <code>+рентген @username</code>", parse_mode="HTML")
         return
 
-    set_user_xray(target_user["user_id"], 1 if is_grant else 0)[cite: 1]
-    display_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))[cite: 1]
+    set_user_xray(target_user["user_id"], 1 if is_grant else 0)
+    display_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))
 
-    if is_grant:[cite: 1]
-        await message.reply(f"👁✅ Игроку <b>{display_name}</b> выдан доступ к рентгену!", parse_mode="HTML")[cite: 1]
+    if is_grant:
+        await message.reply(f"👁✅ Игроку <b>{display_name}</b> выдан доступ к рентгену!", parse_mode="HTML")
     else:
-        await message.reply(f"👁❌ У игрока <b>{display_name}</b> отозван доступ к рентгену.", parse_mode="HTML")[cite: 1]
+        await message.reply(f"👁❌ У игрока <b>{display_name}</b> отозван доступ к рентгену.", parse_mode="HTML")
 
 
 @dp.callback_query(F.data.startswith("xray:"))
 async def handle_xray_alert(callback: CallbackQuery):
-    if not has_xray_access(callback.from_user.id, callback.from_user.username):[cite: 1]
-        await callback.answer("Это не твоя игра!", show_alert=True)[cite: 1]
+    if not has_xray_access(callback.from_user.id, callback.from_user.username):
+        await callback.answer("Это не твоя игра!", show_alert=True)
         return
 
-    game_id = callback.data.split(":", 1)[1][cite: 1]
-    if game_id not in games:[cite: 1]
-        await callback.answer("Игра уже завершена.", show_alert=True)[cite: 1]
+    game_id = callback.data.split(":", 1)[1]
+    if game_id not in games:
+        await callback.answer("Игра уже завершена.", show_alert=True)
         return
 
-    game = games[game_id][cite: 1]
-    grid_lines = [][cite: 1]
-    for r in range(5):[cite: 1]
-        row_str = ""[cite: 1]
-        for c in range(5):[cite: 1]
-            idx = r * 5 + c[cite: 1]
-            if idx in game["opened"]:[cite: 1]
-                row_str += "✅ "[cite: 1]
-            elif idx in game["mines_pos"]:[cite: 1]
-                row_str += "💣 "[cite: 1]
+    game = games[game_id]
+    grid_lines = []
+    for r in range(5):
+        row_str = ""
+        for c in range(5):
+            idx = r * 5 + c
+            if idx in game["opened"]:
+                row_str += "✅ "
+            elif idx in game["mines_pos"]:
+                row_str += "💣 "
             else:
-                row_str += "💎 "[cite: 1]
-        grid_lines.append(row_str)[cite: 1]
+                row_str += "💎 "
+        grid_lines.append(row_str)
 
-    board_text = "\n".join(grid_lines)[cite: 1]
+    board_text = "\n".join(grid_lines)
     await callback.answer(
         f"ID: {game['user_id']}\n"
         f"Баланс: {float(get_user(game['user_id']).get('balance') or 0.0):.2f} TON\n"
         f"Выбрано мин: {game['mines_count']} шт.\n\n"
         f"{board_text}",
         show_alert=True
-    )[cite: 1]
+    )
 
 
 @dp.message(F.text.lower() == "литр")
 async def handle_admin_xray(message: Message):
-    if not has_xray_access(message.from_user.id, message.from_user.username):[cite: 1]
+    if not has_xray_access(message.from_user.id, message.from_user.username):
         return
 
-    if not message.reply_to_message:[cite: 1]
-        await message.reply("❌ Ответьте этой командой реплаем на сообщение с активной игрой.")[cite: 1]
+    if not message.reply_to_message:
+        await message.reply("❌ Ответьте этой командой реплаем на сообщение с активной игрой.")
         return
 
-    target_msg = message.reply_to_message[cite: 1]
-    game_id = f"{target_msg.chat.id}_{target_msg.message_id}"[cite: 1]
-    if game_id not in games:[cite: 1]
-        await message.reply("❌ В этом сообщении нет активной игры.")[cite: 1]
+    target_msg = message.reply_to_message
+    game_id = f"{target_msg.chat.id}_{target_msg.message_id}"
+    if game_id not in games:
+        await message.reply("❌ В этом сообщении нет активной игры.")
         return
 
-    game = games[game_id][cite: 1]
-    grid_lines = [][cite: 1]
-    for r in range(5):[cite: 1]
-        row_str = ""[cite: 1]
-        for c in range(5):[cite: 1]
-            idx = r * 5 + c[cite: 1]
-            if idx in game["opened"]:[cite: 1]
-                row_str += "✅ "[cite: 1]
-            elif idx in game["mines_pos"]:[cite: 1]
-                row_str += "💣 "[cite: 1]
+    game = games[game_id]
+    grid_lines = []
+    for r in range(5):
+        row_str = ""
+        for c in range(5):
+            idx = r * 5 + c
+            if idx in game["opened"]:
+                row_str += "✅ "
+            elif idx in game["mines_pos"]:
+                row_str += "💣 "
             else:
-                row_str += "💎 "[cite: 1]
-        grid_lines.append(row_str)[cite: 1]
+                row_str += "💎 "
+        grid_lines.append(row_str)
 
-    board_text = "\n".join(grid_lines)[cite: 1]
+    board_text = "\n".join(grid_lines)
     await message.reply(
         f"👁 <b>Рентген игрового поля:</b>\n"
         f"👤 Игрок: <b>{html.escape(game['first_name'])}</b> | 🧨 Мин: <b>{game['mines_count']}</b>\n\n"
         f"{board_text}\n\n"
         "💣 — мина | 💎 — алмаз | ✅ — открыто",
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
 
 @dp.message(F.text.lower().in_(["б", "баланс"]))
 async def handle_show_balance(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    if message.reply_to_message:[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    if message.reply_to_message:
         target = get_user(
             message.reply_to_message.from_user.id,
             message.reply_to_message.from_user.username,
             message.reply_to_message.from_user.first_name
-        )[cite: 1]
-        name = get_name(target["user_id"], target.get("username"), message.reply_to_message.from_user.first_name)[cite: 1]
+        )
+        name = get_name(target["user_id"], target.get("username"), message.reply_to_message.from_user.first_name)
     else:
-        target = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
-        name = get_name(target["user_id"], target.get("username"), message.from_user.first_name)[cite: 1]
+        target = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+        name = get_name(target["user_id"], target.get("username"), message.from_user.first_name)
 
-    current_balance = float(target.get("balance") or 0.0)[cite: 1]
-    await message.reply(f"💳 Баланс игрока <b>{name}</b>: <code>{current_balance:.2f} TON</code> 💎", parse_mode="HTML")[cite: 1]
+    current_balance = float(target.get("balance") or 0.0)
+    await message.reply(f"💳 Баланс игрока <b>{name}</b>: <code>{current_balance:.2f} TON</code> 💎", parse_mode="HTML")
 
 
 @dp.message(F.text.lower().startswith("кэш"))
 async def handle_admin_cash(message: Message):
-    user_name = (message.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
-        await message.reply("⛔ У вас нет прав на использование этой команды.")[cite: 1]
+    user_name = (message.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
+        await message.reply("⛔ У вас нет прав на использование этой команды.")
         return
 
-    parts = message.text.strip().split()[cite: 1]
-    target_user = None[cite: 1]
-    amount = None[cite: 1]
+    parts = message.text.strip().split()
+    target_user = None
+    amount = None
 
-    if message.reply_to_message and len(parts) >= 2:[cite: 1]
+    if message.reply_to_message and len(parts) >= 2:
         try:
-            amount = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
+            amount = round(float(parts[1].replace(",", ".")), 2)
             target_user = get_user(
                 message.reply_to_message.from_user.id,
                 message.reply_to_message.from_user.username,
                 message.reply_to_message.from_user.first_name
-            )[cite: 1]
+            )
         except ValueError:
             pass
-    elif len(parts) >= 3:[cite: 1]
-        target_raw = parts[1][cite: 1]
+    elif len(parts) >= 3:
+        target_raw = parts[1]
         try:
-            amount = round(float(parts[2].replace(",", ".")), 2)[cite: 1]
-            if target_raw.startswith("@"):[cite: 1]
-                target_user = get_user_by_username(target_raw)[cite: 1]
-            elif target_raw.isdigit():[cite: 1]
-                target_user = get_user(int(target_raw))[cite: 1]
+            amount = round(float(parts[2].replace(",", ".")), 2)
+            if target_raw.startswith("@"):
+                target_user = get_user_by_username(target_raw)
+            elif target_raw.isdigit():
+                target_user = get_user(int(target_raw))
         except ValueError:
             pass
-    elif len(parts) == 2:[cite: 1]
+    elif len(parts) == 2:
         try:
-            amount = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
-            target_user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
+            amount = round(float(parts[1].replace(",", ".")), 2)
+            target_user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
         except ValueError:
             pass
 
-    if amount is None or amount <= 0:[cite: 1]
-        await message.reply("❌ Формат: <code>кэш 500</code> или <code>кэш @username 500</code>", parse_mode="HTML")[cite: 1]
+    if amount is None or amount <= 0:
+        await message.reply("❌ Формат: <code>кэш 500</code> или <code>кэш @username 500</code>", parse_mode="HTML")
         return
 
     if amount < MIN_DEPOSIT:
         await message.reply(f"❌ Минимальный депозит — <b>{MIN_DEPOSIT:.2f} TON</b>", parse_mode="HTML")
         return
 
-    if not target_user:[cite: 1]
-        await message.reply("❌ Пользователь не найден в базе данных.")[cite: 1]
+    if not target_user:
+        await message.reply("❌ Пользователь не найден в базе данных.")
         return
 
-    add_deposit_amount(target_user["user_id"], amount)[cite: 1]
-    updated = get_user(target_user["user_id"])[cite: 1]
-    target_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))[cite: 1]
-    bal = float(updated.get("balance") or 0.0)[cite: 1]
+    add_deposit_amount(target_user["user_id"], amount)
+    updated = get_user(target_user["user_id"])
+    target_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))
+    bal = float(updated.get("balance") or 0.0)
 
     await message.reply(
         f"⚡ <b>Успешная выдача кэша!</b>\n\n"
@@ -1385,96 +1385,96 @@ async def handle_admin_cash(message: Message):
         f"💰 Начислено: <b>+{amount:.2f} TON</b>\n"
         f"💳 Новый баланс: <b>{bal:.2f} TON</b>",
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
 
 @dp.message(F.text.lower().startswith("анкэш"))
 async def handle_admin_uncash(message: Message):
-    user_name = (message.from_user.username or "").lower()[cite: 1]
-    if user_name != ADMIN_USERNAME.lower():[cite: 1]
-        await message.reply("⛔ У вас нет прав на использование этой команды.")[cite: 1]
+    user_name = (message.from_user.username or "").lower()
+    if user_name != ADMIN_USERNAME.lower():
+        await message.reply("⛔ У вас нет прав на использование этой команды.")
         return
 
-    parts = message.text.strip().split()[cite: 1]
-    target_user = None[cite: 1]
-    is_full = False[cite: 1]
-    amount = 0.0[cite: 1]
+    parts = message.text.strip().split()
+    target_user = None
+    is_full = False
+    amount = 0.0
 
-    if message.reply_to_message:[cite: 1]
+    if message.reply_to_message:
         target_user = get_user(
             message.reply_to_message.from_user.id,
             message.reply_to_message.from_user.username,
             message.reply_to_message.from_user.first_name
-        )[cite: 1]
-        if len(parts) >= 2:[cite: 1]
-            if parts[1].lower() == "фулл":[cite: 1]
-                is_full = True[cite: 1]
+        )
+        if len(parts) >= 2:
+            if parts[1].lower() == "фулл":
+                is_full = True
             else:
                 try:
-                    amount = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
+                    amount = round(float(parts[1].replace(",", ".")), 2)
                 except ValueError:
                     pass
-    elif len(parts) >= 3:[cite: 1]
-        target_raw = parts[1][cite: 1]
-        if target_raw.startswith("@"):[cite: 1]
-            target_user = get_user_by_username(target_raw)[cite: 1]
-        elif target_raw.isdigit():[cite: 1]
-            target_user = get_user(int(target_raw))[cite: 1]
+    elif len(parts) >= 3:
+        target_raw = parts[1]
+        if target_raw.startswith("@"):
+            target_user = get_user_by_username(target_raw)
+        elif target_raw.isdigit():
+            target_user = get_user(int(target_raw))
 
-        if parts[2].lower() == "фулл":[cite: 1]
-            is_full = True[cite: 1]
+        if parts[2].lower() == "фулл":
+            is_full = True
         else:
             try:
-                amount = round(float(parts[2].replace(",", ".")), 2)[cite: 1]
+                amount = round(float(parts[2].replace(",", ".")), 2)
             except ValueError:
                 pass
-    elif len(parts) == 2:[cite: 1]
-        target_user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
-        if parts[1].lower() == "фулл":[cite: 1]
-            is_full = True[cite: 1]
+    elif len(parts) == 2:
+        target_user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+        if parts[1].lower() == "фулл":
+            is_full = True
         else:
             try:
-                amount = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
+                amount = round(float(parts[1].replace(",", ".")), 2)
             except ValueError:
                 pass
 
-    if not target_user:[cite: 1]
-        await message.reply("❌ Пользователь не найден.")[cite: 1]
+    if not target_user:
+        await message.reply("❌ Пользователь не найден.")
         return
 
-    target_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))[cite: 1]
-    old_balance = float(target_user.get("balance") or 0.0)[cite: 1]
+    target_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))
+    old_balance = float(target_user.get("balance") or 0.0)
 
-    if is_full:[cite: 1]
-        set_balance(target_user["user_id"], 0.0)[cite: 1]
+    if is_full:
+        set_balance(target_user["user_id"], 0.0)
         await message.reply(
             f"🧹 <b>Баланс полностью аннулирован!</b>\n\n"
             f"👤 Игрок: <b>{target_name}</b>\n"
             f"📉 Списано: <b>-{old_balance:.2f} TON</b>\n"
             f"💳 Новый баланс: <b>0.00 TON</b>",
             parse_mode="HTML"
-        )[cite: 1]
+        )
         return
 
-    if amount <= 0:[cite: 1]
-        await message.reply("❌ Формат: <code>анкэш фулл</code> или <code>анкэш 100</code>", parse_mode="HTML")[cite: 1]
+    if amount <= 0:
+        await message.reply("❌ Формат: <code>анкэш фулл</code> или <code>анкэш 100</code>", parse_mode="HTML")
         return
 
-    new_bal = max(0.0, round(old_balance - amount, 2))[cite: 1]
-    set_balance(target_user["user_id"], new_bal)[cite: 1]
+    new_bal = max(0.0, round(old_balance - amount, 2))
+    set_balance(target_user["user_id"], new_bal)
     await message.reply(
         f"📉 <b>Средства списаны!</b>\n\n"
         f"👤 Игрок: <b>{target_name}</b>\n"
         f"💸 Списано: <b>-{amount:.2f} TON</b>\n"
         f"💳 Новый баланс: <b>{new_bal:.2f} TON</b>",
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
 
 # ================= ТОП (/top) =================
 def render_top_text(chat_id: int = None, is_admin: bool = False) -> str:
     with get_db() as conn:
-        if chat_id and chat_id < 0:[cite: 1]
+        if chat_id and chat_id < 0:
             rows = conn.execute("""
                 SELECT u.user_id, u.username, u.first_name, u.balance 
                 FROM users u
@@ -1482,11 +1482,11 @@ def render_top_text(chat_id: int = None, is_admin: bool = False) -> str:
                 WHERE cm.chat_id = ? AND COALESCE(u.balance, 0) <= ?
                 ORDER BY COALESCE(u.balance, 0) DESC 
                 LIMIT 10
-            """, (chat_id, MAX_SAFE_VALUE)).fetchall()[cite: 1]
-            header = "🏆 <b>Топ-10 богачей этого чата по балансу TON:</b>\n\n"[cite: 1]
+            """, (chat_id, MAX_SAFE_VALUE)).fetchall()
+            header = "🏆 <b>Топ-10 богачей этого чата по балансу TON:</b>\n\n"
         else:
-            if not is_admin:[cite: 1]
-                return "ℹ️ Команда <code>/top</code> работает в группе для просмотра топа участников этого чата!"[cite: 1]
+            if not is_admin:
+                return "ℹ️ Команда <code>/top</code> работает в группе для просмотра топа участников этого чата!"
 
             rows = conn.execute("""
                 SELECT user_id, username, first_name, balance 
@@ -1494,146 +1494,146 @@ def render_top_text(chat_id: int = None, is_admin: bool = False) -> str:
                 WHERE COALESCE(balance, 0) <= ?
                 ORDER BY COALESCE(balance, 0) DESC 
                 LIMIT 10
-            """, (MAX_SAFE_VALUE,)).fetchall()[cite: 1]
-            header = "🏆 <b>Глобальный топ-10 богачей по балансу TON:</b>\n\n"[cite: 1]
+            """, (MAX_SAFE_VALUE,)).fetchall()
+            header = "🏆 <b>Глобальный топ-10 богачей по балансу TON:</b>\n\n"
 
-    if not rows:[cite: 1]
-        return header + "<i>В этом чате пока нет игроков!</i>"[cite: 1]
+    if not rows:
+        return header + "<i>В этом чате пока нет игроков!</i>"
 
-    text = header[cite: 1]
-    for idx, row in enumerate(rows, start=1):[cite: 1]
-        nickname = get_name(row["user_id"], row["username"], row["first_name"])[cite: 1]
-        bal = float(row["balance"] or 0.0)[cite: 1]
-        text += f"{idx}. <b>{nickname}</b> — <code>{bal:.2f} TON</code>\n"[cite: 1]
+    text = header
+    for idx, row in enumerate(rows, start=1):
+        nickname = get_name(row["user_id"], row["username"], row["first_name"])
+        bal = float(row["balance"] or 0.0)
+        text += f"{idx}. <b>{nickname}</b> — <code>{bal:.2f} TON</code>\n"
     return text
 
 
 @dp.message(Command("top"))
 async def cmd_top(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    is_admin = (message.from_user.username or "").lower() == ADMIN_USERNAME.lower()[cite: 1]
-    await message.answer(render_top_text(message.chat.id, is_admin), parse_mode="HTML")[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    is_admin = (message.from_user.username or "").lower() == ADMIN_USERNAME.lower()
+    await message.answer(render_top_text(message.chat.id, is_admin), parse_mode="HTML")
 
 
 @dp.callback_query(F.data == "show_top")
 async def cb_show_top(callback: CallbackQuery):
-    chat_id = callback.message.chat.id[cite: 1]
-    register_chat_member(chat_id, callback.from_user.id)[cite: 1]
-    is_admin = (callback.from_user.username or "").lower() == ADMIN_USERNAME.lower()[cite: 1]
-    await callback.message.answer(render_top_text(chat_id, is_admin), parse_mode="HTML")[cite: 1]
-    await callback.answer()[cite: 1]
+    chat_id = callback.message.chat.id
+    register_chat_member(chat_id, callback.from_user.id)
+    is_admin = (callback.from_user.username or "").lower() == ADMIN_USERNAME.lower()
+    await callback.message.answer(render_top_text(chat_id, is_admin), parse_mode="HTML")
+    await callback.answer()
 
 
 # ================= БОНУС 5000 TON =================
 def claim_bonus_logic(user_id: int, username: str = None, first_name: str = None):
-    user = get_user(user_id, username, first_name)[cite: 1]
-    now = datetime.datetime.now()[cite: 1]
+    user = get_user(user_id, username, first_name)
+    now = datetime.datetime.now()
 
-    if user["last_bonus"]:[cite: 1]
-        last_bonus_time = datetime.datetime.fromisoformat(user["last_bonus"])[cite: 1]
-        cooldown = datetime.timedelta(days=1)[cite: 1]
-        if now - last_bonus_time < cooldown:[cite: 1]
-            remaining = cooldown - (now - last_bonus_time)[cite: 1]
-            hours, remainder = divmod(int(remaining.total_seconds()), 3600)[cite: 1]
-            minutes, _ = divmod(remainder, 60)[cite: 1]
-            return False, f"⏳ Рано! Бонус будет доступен через {hours} ч. {minutes} мин.", 0.0[cite: 1]
+    if user["last_bonus"]:
+        last_bonus_time = datetime.datetime.fromisoformat(user["last_bonus"])
+        cooldown = datetime.timedelta(days=1)
+        if now - last_bonus_time < cooldown:
+            remaining = cooldown - (now - last_bonus_time)
+            hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+            minutes, _ = divmod(remainder, 60)
+            return False, f"⏳ Рано! Бонус будет доступен через {hours} ч. {minutes} мин.", 0.0
 
-    update_balance(user_id, BONUS_AMOUNT)[cite: 1]
-    with get_db() as conn:[cite: 1]
-        conn.execute("UPDATE users SET last_bonus = ? WHERE user_id = ?", (now.isoformat(), user_id))[cite: 1]
-        conn.commit()[cite: 1]
+    update_balance(user_id, BONUS_AMOUNT)
+    with get_db() as conn:
+        conn.execute("UPDATE users SET last_bonus = ? WHERE user_id = ?", (now.isoformat(), user_id))
+        conn.commit()
 
-    updated = get_user(user_id)[cite: 1]
-    return True, f"🎉 Вы забрали бонус: +{BONUS_AMOUNT:.2f} TON!", float(updated.get("balance") or 0.0)[cite: 1]
+    updated = get_user(user_id)
+    return True, f"🎉 Вы забрали бонус: +{BONUS_AMOUNT:.2f} TON!", float(updated.get("balance") or 0.0)
 
 
 @dp.message(F.text.lower().in_(["бонус", "/bonus"]))
 async def handle_bonus_command(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    success, msg, new_balance = claim_bonus_logic(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    if not success:[cite: 1]
-        await message.reply(msg)[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    success, msg, new_balance = claim_bonus_logic(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    if not success:
+        await message.reply(msg)
     else:
-        user_name = get_name(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
+        user_name = get_name(message.from_user.id, message.from_user.username, message.from_user.first_name)
         await message.reply(
             f"🎁 <b>Бонус получен!</b>\n\n"
             f"👤 Игрок: <b>{user_name}</b>\n"
             f"💰 Начислено: <b>+{BONUS_AMOUNT:.2f} TON</b>\n"
             f"💳 Баланс: <b>{new_balance:.2f} TON</b>",
             parse_mode="HTML"
-        )[cite: 1]
+        )
 
 
 @dp.callback_query(F.data == "get_bonus")
 async def cb_get_bonus(callback: CallbackQuery):
-    success, msg, new_balance = claim_bonus_logic(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)[cite: 1]
-    if not success:[cite: 1]
-        await callback.answer(msg, show_alert=True)[cite: 1]
+    success, msg, new_balance = claim_bonus_logic(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    if not success:
+        await callback.answer(msg, show_alert=True)
     else:
-        await callback.answer(msg, show_alert=True)[cite: 1]
+        await callback.answer(msg, show_alert=True)
         await callback.message.answer(
             f"🎁 <b>Бонус получен!</b>\n"
             f"Начислено: <b>+{BONUS_AMOUNT:.2f} TON</b>\n"
             f"Текущий баланс: <b>{new_balance:.2f} TON</b>",
             parse_mode="HTML"
-        )[cite: 1]
+        )
 
 
 # ================= ПЕРЕВОДЫ =================
 @dp.message(F.text.lower().startswith("п "))
 async def handle_transfer(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
-    sender = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)[cite: 1]
-    sender_bal = float(sender.get("balance") or 0.0)[cite: 1]
-    parts = message.text.strip().split()[cite: 1]
-    target_user = None[cite: 1]
-    amount = 0.0[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
+    sender = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    sender_bal = float(sender.get("balance") or 0.0)
+    parts = message.text.strip().split()
+    target_user = None
+    amount = 0.0
 
-    if message.reply_to_message and len(parts) == 2:[cite: 1]
+    if message.reply_to_message and len(parts) == 2:
         try:
-            amount = round(float(parts[1].replace(",", ".")), 2)[cite: 1]
+            amount = round(float(parts[1].replace(",", ".")), 2)
             target_user = get_user(
                 message.reply_to_message.from_user.id,
                 message.reply_to_message.from_user.username,
                 message.reply_to_message.from_user.first_name
-            )[cite: 1]
-            register_chat_member(message.chat.id, message.reply_to_message.from_user.id)[cite: 1]
+            )
+            register_chat_member(message.chat.id, message.reply_to_message.from_user.id)
         except ValueError:
-            await message.reply("❌ Неверный формат суммы. Пример: <code>п 50</code>", parse_mode="HTML")[cite: 1]
+            await message.reply("❌ Неверный формат суммы. Пример: <code>п 50</code>", parse_mode="HTML")
             return
-    elif len(parts) >= 3:[cite: 1]
-        target_raw = parts[1][cite: 1]
+    elif len(parts) >= 3:
+        target_raw = parts[1]
         try:
-            amount = round(float(parts[2].replace(",", ".")), 2)[cite: 1]
+            amount = round(float(parts[2].replace(",", ".")), 2)
         except ValueError:
-            await message.reply("❌ Неверный формат суммы. Пример: <code>п @юзер 50</code>", parse_mode="HTML")[cite: 1]
+            await message.reply("❌ Неверный формат суммы. Пример: <code>п @юзер 50</code>", parse_mode="HTML")
             return
 
-        if target_raw.startswith("@"):[cite: 1]
-            target_user = get_user_by_username(target_raw)[cite: 1]
-        elif target_raw.isdigit():[cite: 1]
-            target_user = get_user(int(target_raw))[cite: 1]
+        if target_raw.startswith("@"):
+            target_user = get_user_by_username(target_raw)
+        elif target_raw.isdigit():
+            target_user = get_user(int(target_raw))
     else:
-        await message.reply("❌ Формат: <code>п @username сумма</code> или ответом: <code>п сумма</code>", parse_mode="HTML")[cite: 1]
+        await message.reply("❌ Формат: <code>п @username сумма</code> или ответом: <code>п сумма</code>", parse_mode="HTML")
         return
 
-    if not target_user:[cite: 1]
-        await message.reply("❌ Получатель не найден в базе.")[cite: 1]
+    if not target_user:
+        await message.reply("❌ Получатель не найден в базе.")
         return
 
-    if target_user["user_id"] == sender["user_id"]:[cite: 1]
-        await message.reply("❌ Нельзя переводить TON самому себе.")[cite: 1]
+    if target_user["user_id"] == sender["user_id"]:
+        await message.reply("❌ Нельзя переводить TON самому себе.")
         return
 
-    if amount <= 0 or sender_bal < amount:[cite: 1]
-        await message.reply(f"❌ Не хватает TON! Твой баланс: <b>{sender_bal:.2f} TON</b>", parse_mode="HTML")[cite: 1]
+    if amount <= 0 or sender_bal < amount:
+        await message.reply(f"❌ Не хватает TON! Твой баланс: <b>{sender_bal:.2f} TON</b>", parse_mode="HTML")
         return
 
-    update_balance(sender["user_id"], -amount)[cite: 1]
-    update_balance(target_user["user_id"], amount)[cite: 1]
+    update_balance(sender["user_id"], -amount)
+    update_balance(target_user["user_id"], amount)
 
-    sender_name = get_name(sender["user_id"], message.from_user.username, message.from_user.first_name)[cite: 1]
-    recipient_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))[cite: 1]
+    sender_name = get_name(sender["user_id"], message.from_user.username, message.from_user.first_name)
+    recipient_name = get_name(target_user["user_id"], target_user.get("username"), target_user.get("first_name"))
 
     await message.reply(
         f"✅ <b>Перевод выполнен!</b>\n\n"
@@ -1641,13 +1641,13 @@ async def handle_transfer(message: Message):
         f"Кому: <b>{recipient_name}</b>\n"
         f"Сумма: <b>{amount:.2f} TON</b>",
         parse_mode="HTML"
-    )[cite: 1]
+    )
 
 
 # ================= ПАСХАЛКИ =================
 @dp.message(F.text.func(lambda text: text and any(phrase in text.lower().replace("  ", " ").strip() for phrase in ["lift syka", "лифт сука"])))
 async def handle_lift_syka(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)[cite: 1]
+    register_chat_member(message.chat.id, message.from_user.id)
     file_path = os.path.join(BASE_DIR, "lift.png")
     if not os.path.exists(file_path):
         await message.reply("ЭТА ЖИ LIFT SYKA (файл lift.png не найден рядом со скриптом)")
@@ -1657,7 +1657,7 @@ async def handle_lift_syka(message: Message):
         photo = FSInputFile(file_path)
         await message.reply_photo(photo=photo, caption="ЭТА ЖИ LIFT SYKA")
     except Exception as e:
-        await message.reply(f"ЭТА ЖИ LIFT SYKA (ошибка отправки: {e})")[cite: 1]
+        await message.reply(f"ЭТА ЖИ LIFT SYKA (ошибка отправки: {e})")
 
 
 GROSS_KEYWORDS = [
@@ -1699,15 +1699,15 @@ async def handle_sarmolaev_easter_egg(message: Message):
 
 @dp.callback_query(F.data == "ignore")
 async def handle_ignore(callback: CallbackQuery):
-    await callback.answer()[cite: 1]
+    await callback.answer()
 
 
 # ================= ЗАПУСК =================
 async def main():
-    init_db()[cite: 1]
-    print("Casino Bot (Mines, Joker, 21) успешно запущен!")[cite: 1]
-    await dp.start_polling(bot)[cite: 1]
+    init_db()
+    print("Casino Bot (Mines, Joker, 21) успешно запущен!")
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())[cite: 1]
+    asyncio.run(main())
