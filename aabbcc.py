@@ -17,13 +17,15 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
+    InlineQuery,
+    InlineQueryResultCachedVoice,
 )
 
 TOKEN = "8908366093:AAH7Io2b027KHlyvMCMu5x7F7w8vmC18E5U"
 ADMIN_USERNAME = "lithromantov"
 DONATE_TARGET = "lithromantov"
+BOT_USERNAME = "litrtonbot"
 
-# Папка со скриптом
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MIN_DEPOSIT = 10.0
 MIN_BET = 10.0
@@ -31,13 +33,30 @@ MIN_BET = 10.0
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Игровые сессии
-games = {}          # Мины
-joker_games = {}    # Башня Джокер
-bj_games = {}       # 21 Очко
+games = {}
+joker_games = {}
+bj_games = {}
 
 custom_next_mines = {}
 nextgame_setups = {}
+
+VOICE_SOUNDS = {
+    "ksivik": {
+        "title": "Ksivik / Troll",
+        "file": "ksivik.mp3",
+        "keywords": ["ksivik", "xivivide", "ксивик", "ксививайд", "ксив", "тролл", "троллинг", "троллится", "троллиться", "троллюсь"]
+    },
+    "moggt": {
+        "title": "Dark Triad",
+        "file": "moggt.mp3",
+        "keywords": ["dark triad", "dark", "triad", "триада"]
+    },
+    "mogged": {
+        "title": "Mogged / Mog",
+        "file": "mogged.mp3",
+        "keywords": ["mog", "mogg", "mogged", "мог", "могаю", "могаем", "могаим"]
+    }
+}
 
 TOTAL_TILES = 25
 HOUSE_EDGE = 0.95
@@ -51,6 +70,15 @@ DECK = [
     ("2", 2), ("3", 3), ("4", 4), ("5", 5), ("6", 6), ("7", 7),
     ("8", 8), ("9", 9), ("10", 10), ("J", 2), ("Q", 3), ("K", 4), ("A", 11)
 ] * 4
+
+
+# ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
+def clean_bot_mention(text: str) -> str:
+    if not text:
+        return ""
+    pattern = rf"(?i)@{re.escape(BOT_USERNAME)}\b"
+    cleaned = re.sub(pattern, "", text).strip()
+    return re.sub(r"\s+", " ", cleaned)
 
 
 # ================= БАЗА ДАННЫХ =================
@@ -85,6 +113,12 @@ def init_db():
                 PRIMARY KEY (chat_id, user_id)
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS voice_cache (
+                sound_key TEXT PRIMARY KEY,
+                file_id TEXT
+            )
+        """)
 
         cursor = conn.execute("PRAGMA table_info(users)")
         columns = [row["name"] for row in cursor.fetchall()]
@@ -107,6 +141,18 @@ def init_db():
             conn.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
 
         conn.execute("CREATE INDEX IF NOT EXISTS idx_users_balance ON users(balance)")
+        conn.commit()
+
+
+def get_cached_voice(key: str) -> str:
+    with get_db() as conn:
+        row = conn.execute("SELECT file_id FROM voice_cache WHERE sound_key = ?", (key,)).fetchone()
+        return row["file_id"] if row else None
+
+
+def set_cached_voice(key: str, file_id: str):
+    with get_db() as conn:
+        conn.execute("INSERT OR REPLACE INTO voice_cache (sound_key, file_id) VALUES (?, ?)", (key, file_id))
         conn.commit()
 
 
@@ -410,7 +456,7 @@ async def animate_loss(msg: Message, player_name: str, bet: float, kb: InlineKey
 
 
 # ================= СКРЫТАЯ КОМАНДА PING =================
-@dp.message(F.text.lower() == ".ping")
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower() == ".ping"))
 async def handle_ping(message: Message):
     start_time = time.perf_counter()
     msg = await message.reply("🏓 Pong...")
@@ -436,7 +482,7 @@ async def cmd_start(message: Message):
         "🎁 <b>Бонус:</b> <code>бонус</code> (5000 TON)\n"
         "💳 <b>Баланс:</b> <code>б</code> или <code>баланс</code>\n"
         "💸 <b>Перевод:</b> <code>п @юзер 50</code>\n"
-        "🏆 <b>Топ:</b> /top",
+        "🏆 <b>Топ:</b> /top или <code>top</code>",
         reply_markup=get_main_menu_keyboard(),
         parse_mode="HTML"
     )
@@ -465,7 +511,7 @@ async def cb_my_profile(callback: CallbackQuery):
     )
 
 
-@dp.message(F.text.lower().in_(["стата", "статистика", "/stat"]))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower() in ["стата", "статистика", "/stat"]))
 async def handle_show_stat(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     if message.reply_to_message:
@@ -494,7 +540,7 @@ async def handle_show_stat(message: Message):
 
 
 # ================= 1. МИНЫ =================
-@dp.message(F.text.lower().startswith("мины"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("мины")))
 async def handle_mines_command(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     user_id = message.from_user.id
@@ -504,7 +550,7 @@ async def handle_mines_command(message: Message):
         return
 
     user_bal = float(user.get("balance") or 0.0)
-    text = message.text.lower().strip()
+    text = clean_bot_mention(message.text).lower().strip()
 
     args_text = text[4:].strip()
     if not args_text:
@@ -742,7 +788,7 @@ async def handle_cashout(callback: CallbackQuery):
 
 
 # ================= 2. БАШНЯ ДЖОКЕР =================
-@dp.message(F.text.lower().startswith("джокер"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("джокер")))
 async def handle_joker_command(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     user_id = message.from_user.id
@@ -751,7 +797,7 @@ async def handle_joker_command(message: Message):
         await message.reply("⛔ Ваш аккаунт заморожен.")
         return
 
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     if len(parts) < 2:
         await message.reply("❌ Введите ставку. Пример: <code>джокер 100</code>", parse_mode="HTML")
         return
@@ -909,7 +955,7 @@ async def handle_joker_cashout(callback: CallbackQuery):
 
 
 # ================= 3. 21 ОЧКО (BLACKJACK) =================
-@dp.message(F.text.lower().startswith("21"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("21")))
 async def handle_blackjack(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     user = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
@@ -917,7 +963,7 @@ async def handle_blackjack(message: Message):
         await message.reply("⛔ Ваш аккаунт заморожен.")
         return
 
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     if len(parts) < 2:
         await message.reply("❌ Введите сумму ставки. Пример: <code>21 100</code>", parse_mode="HTML")
         return
@@ -1049,7 +1095,7 @@ async def handle_bj_actions(callback: CallbackQuery):
 
 
 # ================= .nextgame =================
-@dp.message(F.text.lower().startswith(".nextgame"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith(".nextgame")))
 async def handle_nextgame(message: Message):
     user_name = (message.from_user.username or "").lower()
     if user_name != ADMIN_USERNAME.lower():
@@ -1061,7 +1107,7 @@ async def handle_nextgame(message: Message):
         return
 
     user_id = message.from_user.id
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     if len(parts) < 2:
         await message.reply("❌ Укажите количество мин. Пример: <code>.nextgame 15шт</code>", parse_mode="HTML")
         return
@@ -1157,11 +1203,11 @@ async def handle_ng_cancel(callback: CallbackQuery):
 
 
 # ================= АДМИН-КОМАНДЫ =================
-@dp.message(F.text.lower().startswith(".setbal"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith(".setbal")))
 async def handle_admin_setbal(message: Message):
     if (message.from_user.username or "").lower() != ADMIN_USERNAME.lower():
         return
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     target_user = None
     amount = None
 
@@ -1187,12 +1233,13 @@ async def handle_admin_setbal(message: Message):
         await message.reply("❌ Формат: <code>.setbal @юзер 1000</code>", parse_mode="HTML")
 
 
-@dp.message(F.text.lower().startswith(".freeze") | F.text.lower().startswith(".unfreeze"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith(".freeze") or clean_bot_mention(t).lower().startswith(".unfreeze")))
 async def handle_admin_freeze(message: Message):
     if (message.from_user.username or "").lower() != ADMIN_USERNAME.lower():
         return
-    is_freeze = message.text.lower().startswith(".freeze")
-    parts = message.text.strip().split()
+    cleaned = clean_bot_mention(message.text).lower()
+    is_freeze = cleaned.startswith(".freeze")
+    parts = clean_bot_mention(message.text).strip().split()
     target_user = None
 
     if message.reply_to_message:
@@ -1209,14 +1256,15 @@ async def handle_admin_freeze(message: Message):
 
 
 # ================= КЭШ / АНКЭШ / РЕНТГЕН =================
-@dp.message(F.text.lower().startswith("+рентген") | F.text.lower().startswith("-рентген"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("+рентген") or clean_bot_mention(t).lower().startswith("-рентген")))
 async def handle_manage_xray(message: Message):
     user_name = (message.from_user.username or "").lower()
     if user_name != ADMIN_USERNAME.lower():
         return
 
-    is_grant = message.text.lower().startswith("+рентген")
-    parts = message.text.strip().split()
+    cleaned = clean_bot_mention(message.text).lower()
+    is_grant = cleaned.startswith("+рентген")
+    parts = clean_bot_mention(message.text).strip().split()
     target_user = None
 
     if message.reply_to_message:
@@ -1280,7 +1328,7 @@ async def handle_xray_alert(callback: CallbackQuery):
     )
 
 
-@dp.message(F.text.lower() == "литр")
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower() == "литр"))
 async def handle_admin_xray(message: Message):
     if not has_xray_access(message.from_user.id, message.from_user.username):
         return
@@ -1319,7 +1367,7 @@ async def handle_admin_xray(message: Message):
     )
 
 
-@dp.message(F.text.lower().in_(["б", "баланс"]))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower() in ["б", "баланс"]))
 async def handle_show_balance(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     if message.reply_to_message:
@@ -1337,14 +1385,14 @@ async def handle_show_balance(message: Message):
     await message.reply(f"💳 Баланс игрока <b>{name}</b>: <code>{current_balance:.2f} TON</code> 💎", parse_mode="HTML")
 
 
-@dp.message(F.text.lower().startswith("кэш"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("кэш")))
 async def handle_admin_cash(message: Message):
     user_name = (message.from_user.username or "").lower()
     if user_name != ADMIN_USERNAME.lower():
         await message.reply("⛔ У вас нет прав на использование этой команды.")
         return
 
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     target_user = None
     amount = None
 
@@ -1401,14 +1449,14 @@ async def handle_admin_cash(message: Message):
     )
 
 
-@dp.message(F.text.lower().startswith("анкэш"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("анкэш")))
 async def handle_admin_uncash(message: Message):
     user_name = (message.from_user.username or "").lower()
     if user_name != ADMIN_USERNAME.lower():
         await message.reply("⛔ У вас нет прав на использование этой команды.")
         return
 
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     target_user = None
     is_full = False
     amount = 0.0
@@ -1484,7 +1532,7 @@ async def handle_admin_uncash(message: Message):
     )
 
 
-# ================= ТОП (/top) =================
+# ================= ТОП (/top, top) =================
 def render_top_text(chat_id: int = None, is_admin: bool = False) -> str:
     with get_db() as conn:
         if chat_id and chat_id < 0:
@@ -1522,6 +1570,7 @@ def render_top_text(chat_id: int = None, is_admin: bool = False) -> str:
 
 
 @dp.message(Command("top"))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower() in ["top", "топ"]))
 async def cmd_top(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     is_admin = (message.from_user.username or "").lower() == ADMIN_USERNAME.lower()
@@ -1560,7 +1609,7 @@ def claim_bonus_logic(user_id: int, username: str = None, first_name: str = None
     return True, f"🎉 Вы забрали бонус: +{BONUS_AMOUNT:.2f} TON!", float(updated.get("balance") or 0.0)
 
 
-@dp.message(F.text.lower().in_(["бонус", "/bonus"]))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower() in ["бонус", "/bonus"]))
 async def handle_bonus_command(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     success, msg, new_balance = claim_bonus_logic(message.from_user.id, message.from_user.username, message.from_user.first_name)
@@ -1593,12 +1642,12 @@ async def cb_get_bonus(callback: CallbackQuery):
 
 
 # ================= ПЕРЕВОДЫ =================
-@dp.message(F.text.lower().startswith("п "))
+@dp.message(F.text.func(lambda t: clean_bot_mention(t).lower().startswith("п ")))
 async def handle_transfer(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     sender = get_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
     sender_bal = float(sender.get("balance") or 0.0)
-    parts = message.text.strip().split()
+    parts = clean_bot_mention(message.text).strip().split()
     target_user = None
     amount = 0.0
 
@@ -1657,56 +1706,97 @@ async def handle_transfer(message: Message):
     )
 
 
-# ================= ПАСХАЛКИ =================
-KSIVIK_KEYWORDS = [
-    "xivivide", "ksivik", "ксивик", "ксививайд", "ксив",
-    "тролл", "троллится", "троллиться", "троллюсь", "троллинг"
-]
+# ================= ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТПРАВКИ И КЭША ВОЙСОВ =================
+async def send_or_cache_voice(message: Message, sound_key: str):
+    register_chat_member(message.chat.id, message.from_user.id)
+    cached_id = get_cached_voice(sound_key)
+    if cached_id:
+        try:
+            await message.reply_voice(voice=cached_id)
+            return
+        except Exception:
+            pass
 
-MOGGED_KEYWORDS = [
-    "мог", "могаим", "могаем", "mog", "mogg", "mogged", "могаю"
-]
+    sound_data = VOICE_SOUNDS.get(sound_key)
+    if not sound_data:
+        return
 
-@dp.message(F.text.func(lambda text: text and any(re.search(rf"(?i)\b{re.escape(k)}\b", text) for k in KSIVIK_KEYWORDS)))
+    file_path = os.path.join(BASE_DIR, sound_data["file"])
+    if not os.path.exists(file_path):
+        return
+
+    try:
+        sent = await message.reply_voice(voice=FSInputFile(file_path))
+        if sent and sent.voice:
+            set_cached_voice(sound_key, sent.voice.file_id)
+    except Exception:
+        pass
+
+
+# ================= ИНЛАЙН РЕЖИМ (ВОЙСЫ В ЛЮБЫХ ДИАЛОГАХ) =================
+@dp.inline_query()
+async def handle_inline_voice(inline_query: InlineQuery):
+    query = inline_query.query.strip().lower()
+    results = []
+
+    for key, data in VOICE_SOUNDS.items():
+        # Если поле пустое — предлагаем все 3 звука, если введён текст — фильтруем
+        matches = not query or any(query in kw or kw in query for kw in data["keywords"])
+        if matches:
+            file_id = get_cached_voice(key)
+            # Если звук ещё ни разу не отправлялся в чатах, кэшируем его прямо сейчас
+            if not file_id:
+                file_path = os.path.join(BASE_DIR, data["file"])
+                if os.path.exists(file_path):
+                    try:
+                        # Отправка самому себе для получения file_id
+                        temp_msg = await bot.send_voice(chat_id=inline_query.from_user.id, voice=FSInputFile(file_path))
+                        file_id = temp_msg.voice.file_id
+                        set_cached_voice(key, file_id)
+                        await bot.delete_message(chat_id=inline_query.from_user.id, message_id=temp_msg.message_id)
+                    except Exception:
+                        pass
+
+            if file_id:
+                results.append(
+                    InlineQueryResultCachedVoice(
+                        id=f"v_{key}",
+                        voice_file_id=file_id,
+                        title=data["title"]
+                    )
+                )
+
+    await inline_query.answer(results, cache_time=1, is_personal=True)
+
+
+# ================= ПАСХАЛКИ (ОТВЕТ В ЧАТАХ И ЛС) =================
+KSIVIK_WORDS = {"xivivide", "ksivik", "ксивик", "ксививайд", "ксив", "тролл", "троллится", "троллиться", "троллюсь", "троллинг"}
+MOGGED_WORDS = {"мог", "могаим", "могаем", "mog", "mogg", "mogged", "могаю"}
+
+def match_word_list(text: str, words_set: set) -> bool:
+    if not text:
+        return False
+    clean = clean_bot_mention(text).lower()
+    tokens = set(re.findall(r"[a-zA-Zа-яА-ЯёЁ0-9]+", clean))
+    return bool(tokens & words_set) or any(w in clean for w in words_set)
+
+
+@dp.message(F.text.func(lambda text: match_word_list(text, KSIVIK_WORDS)))
 async def handle_ksivik_audio(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)
-    file_path = os.path.join(BASE_DIR, "ksivik.mp3")
-    if not os.path.exists(file_path):
-        return
-    try:
-        audio = FSInputFile(file_path)
-        await message.reply_audio(audio=audio)
-    except Exception:
-        pass
+    await send_or_cache_voice(message, "ksivik")
 
 
-@dp.message(F.text.func(lambda text: text and "dark triad" in text.lower()))
+@dp.message(F.text.func(lambda text: text and "dark triad" in clean_bot_mention(text).lower()))
 async def handle_dark_triad_audio(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)
-    file_path = os.path.join(BASE_DIR, "moggt.mp3")
-    if not os.path.exists(file_path):
-        return
-    try:
-        audio = FSInputFile(file_path)
-        await message.reply_audio(audio=audio)
-    except Exception:
-        pass
+    await send_or_cache_voice(message, "moggt")
 
 
-@dp.message(F.text.func(lambda text: text and any(re.search(rf"(?i)\b{re.escape(k)}\b", text) for k in MOGGED_KEYWORDS)))
+@dp.message(F.text.func(lambda text: match_word_list(text, MOGGED_WORDS)))
 async def handle_mogged_audio(message: Message):
-    register_chat_member(message.chat.id, message.from_user.id)
-    file_path = os.path.join(BASE_DIR, "mogged.mp3")
-    if not os.path.exists(file_path):
-        return
-    try:
-        audio = FSInputFile(file_path)
-        await message.reply_audio(audio=audio)
-    except Exception:
-        pass
+    await send_or_cache_voice(message, "mogged")
 
 
-@dp.message(F.text.func(lambda text: text and any(phrase in text.lower().replace("  ", " ").strip() for phrase in ["lift syka", "лифт сука"])))
+@dp.message(F.text.func(lambda text: text and any(phrase in clean_bot_mention(text).lower().replace("  ", " ").strip() for phrase in ["lift syka", "лифт сука"])))
 async def handle_lift_syka(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     file_path = os.path.join(BASE_DIR, "lift.png")
@@ -1726,7 +1816,7 @@ GROSS_KEYWORDS = [
     "грос штур", "grossshtyr", "@grossshtyr"
 ]
 
-@dp.message(F.text.func(lambda text: text and any(k in text.lower() for k in GROSS_KEYWORDS)))
+@dp.message(F.text.func(lambda text: text and any(k in clean_bot_mention(text).lower() for k in GROSS_KEYWORDS)))
 async def handle_gross_easter_egg(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     file_path = os.path.join(BASE_DIR, "gross.png")
@@ -1744,7 +1834,7 @@ SARMOLAEV_KEYWORDS = [
     "сарделька лаев", "сармалаев", "сарделька", "sarmolaev"
 ]
 
-@dp.message(F.text.func(lambda text: text and any(k in text.lower() for k in SARMOLAEV_KEYWORDS)))
+@dp.message(F.text.func(lambda text: text and any(k in clean_bot_mention(text).lower() for k in SARMOLAEV_KEYWORDS)))
 async def handle_sarmolaev_easter_egg(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
     file_path = os.path.join(BASE_DIR, "sarmolaev.png")
