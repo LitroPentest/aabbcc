@@ -26,6 +26,7 @@ DONATE_TARGET = "lithromantov"
 # Папка со скриптом
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MIN_DEPOSIT = 10.0
+MIN_BET = 10.0
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -553,7 +554,11 @@ async def handle_mines_command(message: Message):
         mines_count = user.get("default_mines") or 5
 
     bet = round(bet, 2)
-    if bet <= 0 or user_bal < bet:
+    if bet < MIN_BET:
+        await message.reply(f"❌ Минимальная ставка: <b>{MIN_BET:.2f} TON</b>", parse_mode="HTML")
+        return
+
+    if user_bal < bet:
         await message.reply(f"❌ Недостаточно средств! Баланс: <b>{user_bal:.2f} TON</b>", parse_mode="HTML")
         return
 
@@ -756,7 +761,11 @@ async def handle_joker_command(message: Message):
     except ValueError:
         return
 
-    if bet <= 0 or float(user["balance"]) < bet:
+    if bet < MIN_BET:
+        await message.reply(f"❌ Минимальная ставка: <b>{MIN_BET:.2f} TON</b>", parse_mode="HTML")
+        return
+
+    if float(user["balance"]) < bet:
         await message.reply("❌ Недостаточно средств!")
         return
 
@@ -918,7 +927,11 @@ async def handle_blackjack(message: Message):
     except ValueError:
         return
 
-    if bet <= 0 or float(user["balance"]) < bet:
+    if bet < MIN_BET:
+        await message.reply(f"❌ Минимальная ставка: <b>{MIN_BET:.2f} TON</b>", parse_mode="HTML")
+        return
+
+    if float(user["balance"]) < bet:
         await message.reply("❌ Недостаточно средств!")
         return
 
@@ -1645,6 +1658,54 @@ async def handle_transfer(message: Message):
 
 
 # ================= ПАСХАЛКИ =================
+KSIVIK_KEYWORDS = [
+    "xivivide", "ksivik", "ксивик", "ксививайд", "ксив",
+    "тролл", "троллится", "троллиться", "троллюсь", "троллинг"
+]
+
+MOGGED_KEYWORDS = [
+    "мог", "могаим", "могаем", "mog", "mogg", "mogged", "могаю"
+]
+
+@dp.message(F.text.func(lambda text: text and any(re.search(rf"(?i)\b{re.escape(k)}\b", text) for k in KSIVIK_KEYWORDS)))
+async def handle_ksivik_audio(message: Message):
+    register_chat_member(message.chat.id, message.from_user.id)
+    file_path = os.path.join(BASE_DIR, "ksivik.mp3")
+    if not os.path.exists(file_path):
+        return
+    try:
+        audio = FSInputFile(file_path)
+        await message.reply_audio(audio=audio)
+    except Exception:
+        pass
+
+
+@dp.message(F.text.func(lambda text: text and "dark triad" in text.lower()))
+async def handle_dark_triad_audio(message: Message):
+    register_chat_member(message.chat.id, message.from_user.id)
+    file_path = os.path.join(BASE_DIR, "moggt.mp3")
+    if not os.path.exists(file_path):
+        return
+    try:
+        audio = FSInputFile(file_path)
+        await message.reply_audio(audio=audio)
+    except Exception:
+        pass
+
+
+@dp.message(F.text.func(lambda text: text and any(re.search(rf"(?i)\b{re.escape(k)}\b", text) for k in MOGGED_KEYWORDS)))
+async def handle_mogged_audio(message: Message):
+    register_chat_member(message.chat.id, message.from_user.id)
+    file_path = os.path.join(BASE_DIR, "mogged.mp3")
+    if not os.path.exists(file_path):
+        return
+    try:
+        audio = FSInputFile(file_path)
+        await message.reply_audio(audio=audio)
+    except Exception:
+        pass
+
+
 @dp.message(F.text.func(lambda text: text and any(phrase in text.lower().replace("  ", " ").strip() for phrase in ["lift syka", "лифт сука"])))
 async def handle_lift_syka(message: Message):
     register_chat_member(message.chat.id, message.from_user.id)
